@@ -352,6 +352,13 @@ class YouTubeBrainrotSplitter {
   }
 
   applyCustomLayout() {
+    // Handle different domains
+    if (this.isFullstack) {
+      this.applyFullstackLayout();
+      return;
+    }
+    
+    // Default YouTube layout
     // Find YouTube player container
     const playerContainer = document.querySelector('#movie_player') || 
                            document.querySelector('.html5-video-player');
@@ -1444,6 +1451,44 @@ class YouTubeBrainrotSplitter {
     } catch (err) {
       // swallow
     }
+  }
+
+  applyFullstackLayout() {
+    console.log('Applying Fullstack.edu.vn layout');
+    
+    // Find YouTube iframe
+    const youtubeIframe = document.querySelector('iframe[src*="youtube.com"], iframe[src*="youtu.be"]');
+    if (!youtubeIframe) {
+      console.log('No YouTube iframe found on Fullstack');
+      return;
+    }
+
+    console.log('Found YouTube iframe:', youtubeIframe);
+    
+    // Add split screen class to body
+    document.body.classList.add('brainrot-split-active');
+
+    // Style the iframe to left 2/3
+    youtubeIframe.style.cssText = `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 66.6667vw !important;
+      height: 100vh !important;
+      z-index: 2147483646 !important;
+      background: black !important;
+    `;
+
+    // Store reference for cleanup
+    this.originalVideoContainer = youtubeIframe;
+
+    // Hide other page elements
+    this.hidePageElements();
+
+    // Create brainrot container on the right
+    this.createBrainrotContainer();
+
+    console.log('Fullstack layout applied');
   }
 
   destroy() {
