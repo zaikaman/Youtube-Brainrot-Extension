@@ -113,7 +113,11 @@ class YouTubeBrainrotSplitter {
     this.setupFullstackVideoListener();
     
     // Initial check for existing videos
-    setTimeout(() => this.checkForFullstackVideos(), 1000);
+    setTimeout(() => {
+      if (!this.userManuallyExited) {
+        this.checkForFullstackVideos();
+      }
+    }, 1000);
   }
 
   setupEscapeHandlers() {
@@ -213,7 +217,10 @@ class YouTubeBrainrotSplitter {
     
     // Also use MutationObserver to catch dynamically added videos and iframes
     const videoObserver = new MutationObserver(() => {
-      this.checkForFullstackVideos();
+      // Don't check if user manually exited
+      if (!this.userManuallyExited) {
+        this.checkForFullstackVideos();
+      }
     });
     
     videoObserver.observe(document.body, {
@@ -231,6 +238,12 @@ class YouTubeBrainrotSplitter {
     // Also check for YouTube iframes (common on Fullstack.edu.vn)
     const youtubeIframes = document.querySelectorAll('iframe[src*="youtube.com"], iframe[src*="youtu.be"]');
     console.log('brainrot: Found', youtubeIframes.length, 'YouTube iframes');
+    
+    // Don't auto-activate if user manually exited
+    if (this.userManuallyExited) {
+      console.log('brainrot: User manually exited, skipping auto-activation');
+      return;
+    }
     
     if (youtubeIframes.length > 0 && !this.isActive) {
       console.log('brainrot: Found YouTube iframe on Fullstack.edu.vn - activating split screen');
