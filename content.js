@@ -31,9 +31,25 @@ class YouTubeBrainrotSplitter {
       this.handleTheaterModeChange();
     });
     
-    // Observe changes to the page element and movie player
+    // Observe changes to the ytd-watch-flexy element (main watch page element)
+    const watchFlexy = document.querySelector('ytd-watch-flexy');
+    const ytdApp = document.querySelector('ytd-app');
     const pageElement = document.querySelector('#page');
     const moviePlayer = document.querySelector('#movie_player');
+    
+    if (watchFlexy) {
+      theaterObserver.observe(watchFlexy, {
+        attributes: true,
+        attributeFilter: ['theater', 'class']
+      });
+    }
+    
+    if (ytdApp) {
+      theaterObserver.observe(ytdApp, {
+        attributes: true,
+        attributeFilter: ['theater', 'class']
+      });
+    }
     
     if (pageElement) {
       theaterObserver.observe(pageElement, {
@@ -154,21 +170,22 @@ class YouTubeBrainrotSplitter {
   handleTheaterModeChange() {
     // Check if YouTube player is in theater mode (not fullscreen)
     const playerContainer = document.querySelector('#movie_player');
-    const pageContainer = document.querySelector('#page');
+    const pageContainer = document.querySelector('#page') || document.querySelector('ytd-watch-flexy');
+    const ytdApp = document.querySelector('ytd-app');
     
     // Debug: Log current classes
     console.log('brainrot: Player classes:', playerContainer?.className);
     console.log('brainrot: Page classes:', pageContainer?.className);
+    console.log('brainrot: YTD App classes:', ytdApp?.className);
     console.log('brainrot: Body classes:', document.body.className);
     
-    // Check for theater mode indicators
+    // Theater mode is indicated by watch-wide class or theater attribute
     const isTheaterMode = (
-      // YouTube's theater mode classes
       (pageContainer && pageContainer.classList.contains('watch-wide')) ||
-      (playerContainer && playerContainer.classList.contains('ytp-large-width-mode')) ||
-      document.body.classList.contains('fullscreen') ||
-      // Alternative checks
-      window.location.search.includes('theater=1')
+      (pageContainer && pageContainer.hasAttribute('theater')) ||
+      (ytdApp && ytdApp.hasAttribute('theater')) ||
+      (document.querySelector('ytd-watch-flexy[theater]')) ||
+      (document.querySelector('[theater]'))
     );
 
     console.log('brainrot: Theater mode detected:', isTheaterMode);
