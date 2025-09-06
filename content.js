@@ -42,17 +42,32 @@ class YouTubeBrainrotSplitter {
 
   // Handle Escape key to always restore layout when active (capture phase)
     this.escapeHandler = (e) => {
-      if (e.key === 'Escape' || e.key === 'Esc') {
-        if (this.isActive) {
-          // Try to exit any browser fullscreen as well
-          try { document.exitFullscreen(); } catch (err) {}
-          this.deactivateSplitScreen();
-        }
+      console.log('brainrot: Key pressed:', e.key, 'isActive:', this.isActive);
+      if ((e.key === 'Escape' || e.key === 'Esc' || e.key === 'f' || e.key === 'F') && this.isActive) {
+        console.log('brainrot: Deactivating split screen via key:', e.key);
+        e.preventDefault();
+        e.stopPropagation();
+        // Try to exit any browser fullscreen as well
+        try { document.exitFullscreen(); } catch (err) {}
+        this.deactivateSplitScreen();
+        return false;
       }
     };
     // Use capture to catch key even if YouTube intercepts it
     document.addEventListener('keydown', this.escapeHandler, true);
     window.addEventListener('keydown', this.escapeHandler, true);
+    
+    // Also add keyup listener as backup
+    this.escapeHandlerKeyup = (e) => {
+      if ((e.key === 'Escape' || e.key === 'Esc' || e.key === 'f' || e.key === 'F') && this.isActive) {
+        console.log('brainrot: Deactivating split screen via keyup:', e.key);
+        e.preventDefault();
+        e.stopPropagation();
+        this.deactivateSplitScreen();
+        return false;
+      }
+    };
+    document.addEventListener('keyup', this.escapeHandlerKeyup, true);
   }
 
   handleFullscreenChange() {
@@ -144,128 +159,77 @@ class YouTubeBrainrotSplitter {
     // Also directly style the native video element inside player to ensure visibility
     const nativeVideo = playerContainer.querySelector('video');
     if (nativeVideo) {
-      // Try to clone the playing video using captureStream() so we avoid moving
-      // the native element and potential YouTube CSS overlay issues.
-      let usedStreamClone = false;
+      // Instead of using captureStream (which has issues with pause/play),
+      // we'll move the actual video element and create a placeholder
       try {
-        if (typeof nativeVideo.captureStream === 'function') {
-          const stream = nativeVideo.captureStream();
-          if (stream) {
-            this.youtubeMovedContainer = document.createElement('div');
-            this.youtubeMovedContainer.className = 'youtube-moved-container';
-            this.youtubeMovedContainer.style.cssText = `
-              position: fixed !important;
-              top: 0 !important;
-              left: 0 !important;
-              width: 66.6667vw !important;
-              height: 100vh !important;
-              z-index: 2147483646 !important;
-              background: black !important;
-              display: flex !important;
-              align-items: center !important;
-              justify-content: center !important;
-              overflow: hidden !important;
-            `;
+        // Save original parent for restore
+        this.movedVideoOriginalParent = nativeVideo.parentElement;
+        this.movedVideoNextSibling = nativeVideo.nextSibling;
 
-            // Create new video element fed from the captureStream
-            this.leftClone = document.createElement('video');
-            this.leftClone.autoplay = true;
-            this.leftClone.muted = false; // allow audio from left clone (original will be paused)
-            this.leftClone.playsInline = true;
-            try { this.leftClone.srcObject = stream; } catch (e) { /* some browsers require attachMediaStream */ }
-            this.leftClone.style.cssText = `
-              width: 100% !important;
-              height: 100% !important;
-              display: block !important;
-              visibility: visible !important;
-              opacity: 1 !important;
-              position: relative !important;
-              z-index: 2147483647 !important;
-            `;
+        // Create moved container
+        this.youtubeMovedContainer = document.createElement('div');
+        this.youtubeMovedContainer.className = 'youtube-moved-container';
+        this.youtubeMovedContainer.style.cssText = `
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 66.6667vw !important;
+          height: 100vh !important;
+          z-index: 2147483646 !important;
+          background: black !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          overflow: hidden !important;
+        `;
 
-            this.youtubeMovedContainer.appendChild(this.leftClone);
-            document.body.appendChild(this.youtubeMovedContainer);
+        // Style video and append to moved container
+        this.movedOriginalVideoElement = nativeVideo;
+        nativeVideo.style.cssText += `
+          width: 100% !important;
+          height: 100% !important;
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          position: relative !important;
+          z-index: 2147483647 !important;
+          pointer-events: auto !important;
+        `;
 
-            // Keep original audio (do not mute original) and hide visually via opacity
-            try {
-              this.movedOriginalVideoElement = nativeVideo;
-              this.movedOriginalVideoWasMuted = !!nativeVideo.muted;
-              // Save original inline style for restore
-              try { nativeVideo.__origStyle = nativeVideo.getAttribute('style') || ''; } catch (e) {}
-              try { nativeVideo.style.cssText += 'opacity: 0 !important; pointer-events: none !important;'; } catch (e) {}
-            } catch (e) {}
+        this.youtubeMovedContainer.appendChild(nativeVideo);
+        document.body.appendChild(this.youtubeMovedContainer);
 
-            // Mute clone so audio continues from the original video (avoids double audio)
-            try { this.leftClone.muted = true; } catch (e) {}
-            try { this.leftClone.play().catch(()=>{}); } catch (e) {}
-
-            this.movedViaStream = true;
-            usedStreamClone = true;
-
-            // Quick check: if clone doesn't advance frames, fallback to moving native video
-            try {
-              const initial = this.leftClone.currentTime || 0;
-              this._leftCloneCheckTimer = setTimeout(() => {
-                try {
-                  const now = this.leftClone && this.leftClone.currentTime ? this.leftClone.currentTime : 0;
-                  if (Math.abs(now - initial) < 0.05) {
-                    // clone didn't progress -> fallback
-                    this._fallbackMoveNativeVideo(nativeVideo);
-                  }
-                } catch (e) {}
-              }, 500);
-            } catch (e) {}
-          }
+        // Create a placeholder in the original position to maintain YouTube's structure
+        this.videoPlaceholder = document.createElement('div');
+        this.videoPlaceholder.style.cssText = `
+          width: 100% !important;
+          height: 100% !important;
+          background: black !important;
+          display: block !important;
+        `;
+        
+        if (this.movedVideoNextSibling) {
+          this.movedVideoOriginalParent.insertBefore(this.videoPlaceholder, this.movedVideoNextSibling);
+        } else {
+          this.movedVideoOriginalParent.appendChild(this.videoPlaceholder);
         }
+
+        // Hide original container to prevent conflicts
+        try { playerContainer.style.visibility = 'hidden'; } catch (err) {}
+
+        this.movedViaStream = false; // We're moving the actual video, not using stream
+        
+        console.log('brainrot: Moved native video element to left container');
       } catch (err) {
-        usedStreamClone = false;
-      }
-
-  // Fallback: move the native video element into a fixed container
-  if (!usedStreamClone) {
-        try {
-          // Save original parent for restore
-          this.movedVideoOriginalParent = nativeVideo.parentElement;
-          this.movedVideoNextSibling = nativeVideo.nextSibling;
-
-          // Create moved container
-          this.youtubeMovedContainer = document.createElement('div');
-          this.youtubeMovedContainer.className = 'youtube-moved-container';
-          this.youtubeMovedContainer.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 66.6667vw !important;
-            height: 100vh !important;
-            z-index: 2147483646 !important;
-            background: black !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            overflow: hidden !important;
-          `;
-
-          // Style video and append to moved container
-          nativeVideo.style.cssText += `
-            width: 100% !important;
-            height: 100% !important;
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            position: relative !important;
-            z-index: 2147483647 !important;
-            pointer-events: auto !important;
-          `;
-
-          this.youtubeMovedContainer.appendChild(nativeVideo);
-          document.body.appendChild(this.youtubeMovedContainer);
-
-          // Hide original container to prevent duplicates
-          try { playerContainer.style.visibility = 'hidden'; } catch (err) {}
-        } catch (err) {
-          // Fallback: just style the native video
-          nativeVideo.style.cssText += `\n            width: 100% !important;\n            height: 100% !important;\n            display: block !important;\n            visibility: visible !important;\n            opacity: 1 !important;\n          `;
-        }
+        console.error('Error moving native video:', err);
+        // Fallback: just style the native video in place
+        nativeVideo.style.cssText += `
+          width: 100% !important;
+          height: 100% !important;
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+        `;
       }
     }
 
@@ -278,28 +242,52 @@ class YouTubeBrainrotSplitter {
     // Add a small restore button so user can exit split mode manually
     try {
       this.restoreBtn = document.createElement('button');
-      this.restoreBtn.textContent = 'Exit split';
+      this.restoreBtn.textContent = '✕ Exit Split';
       this.restoreBtn.style.cssText = `
-        position: fixed;
-        top: 8px;
-        right: 8px;
-        z-index: 2147483675;
-        padding: 6px 10px;
-        background: rgba(0,0,0,0.6);
-        color: white;
-        border: 1px solid rgba(255,255,255,0.2);
-        border-radius: 4px;
-        cursor: pointer;
-        pointer-events: auto;
+        position: fixed !important;
+        top: 10px !important;
+        right: 10px !important;
+        z-index: 2147483677 !important;
+        padding: 8px 12px !important;
+        background: rgba(0,0,0,0.8) !important;
+        color: white !important;
+        border: 1px solid rgba(255,255,255,0.3) !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        pointer-events: auto !important;
+        font-size: 14px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+        transition: all 0.2s ease !important;
       `;
+      
+      // Add hover effects
+      this.restoreBtn.addEventListener('mouseenter', () => {
+        this.restoreBtn.style.background = 'rgba(255,0,0,0.8)';
+        this.restoreBtn.style.transform = 'scale(1.05)';
+      });
+      
+      this.restoreBtn.addEventListener('mouseleave', () => {
+        this.restoreBtn.style.background = 'rgba(0,0,0,0.8)';
+        this.restoreBtn.style.transform = 'scale(1)';
+      });
+      
       console.log('brainrot: restoreBtn created');
-      this.restoreBtn.addEventListener('click', () => {
+      this.restoreBtn.addEventListener('click', (e) => {
         console.log('brainrot: restoreBtn clicked');
+        e.preventDefault();
+        e.stopPropagation();
         this.deactivateSplitScreen();
       });
-      document.body.appendChild(this.restoreBtn);
+      
+      // Make sure the button is added after other elements
+      setTimeout(() => {
+        document.body.appendChild(this.restoreBtn);
+        console.log('brainrot: restoreBtn added to DOM');
+      }, 100);
     } catch (err) {
-      // ignore
+      console.error('Error creating restore button:', err);
     }
 
   // Attach hover handlers to show native controls on the left video
@@ -311,7 +299,10 @@ class YouTubeBrainrotSplitter {
   }
 
   deactivateSplitScreen() {
-    if (!this.isActive) return;
+    if (!this.isActive) {
+      console.log('brainrot: Split screen is not active, nothing to deactivate');
+      return;
+    }
 
     console.log('Deactivating split screen mode');
     this.isActive = false;
@@ -324,6 +315,18 @@ class YouTubeBrainrotSplitter {
       this.brainrotContainer.remove();
       this.brainrotContainer = null;
       this.brainrotVideo = null;
+    }
+
+    // Clean up controls overlay
+    if (this.controlsOverlay) {
+      try {
+        if (this.progressUpdateInterval) {
+          clearInterval(this.progressUpdateInterval);
+          this.progressUpdateInterval = null;
+        }
+        this.controlsOverlay.remove();
+        this.controlsOverlay = null;
+      } catch (e) {}
     }
 
     // Restore original YouTube player styles
@@ -341,59 +344,42 @@ class YouTubeBrainrotSplitter {
       }
     }
 
-    // If we used captureStream clone, stop tracks, remove clone and resume original
-    if (this.movedViaStream) {
+    // If we moved the native video element, move it back to its original parent
+    if (this.youtubeMovedContainer) {
       try {
-  // Clear left clone check timer
-  try { if (this._leftCloneCheckTimer) { clearTimeout(this._leftCloneCheckTimer); this._leftCloneCheckTimer = null; } } catch (e) {}
-        if (this.leftClone && this.leftClone.srcObject) {
-          const tracks = (this.leftClone.srcObject.getTracks && this.leftClone.srcObject.getTracks()) || [];
-          tracks.forEach(t => { try { t.stop(); } catch (e) {} });
-        }
-
-        if (this.leftClone) {
-          try { this.leftClone.remove(); } catch (e) {}
-          this.leftClone = null;
-        }
-
-  // Force remove any moved container immediately
-  try { if (this.youtubeMovedContainer) { this.youtubeMovedContainer.remove(); this.youtubeMovedContainer = null; } } catch (e) {}
-
-        // Restore original video's visibility and mute state
-        if (this.movedOriginalVideoElement) {
+        const movedVideo = this.youtubeMovedContainer.querySelector('video');
+        if (movedVideo && this.movedVideoOriginalParent) {
+          // Restore original video styles
           try {
-            // restore inline style
-            const orig = this.movedOriginalVideoElement.__origStyle || '';
-            if (orig) this.movedOriginalVideoElement.setAttribute('style', orig);
-            else this.movedOriginalVideoElement.removeAttribute('style');
-          } catch (e) {}
-          try { this.movedOriginalVideoElement.muted = !!this.movedOriginalVideoWasMuted; } catch (e) {}
-          try { this.movedOriginalVideoElement.play().catch(()=>{}); } catch (e) {}
-          this.movedOriginalVideoElement = null;
-          this.movedOriginalVideoWasMuted = null;
-        }
-
-  // handled above
-      } catch (err) {}
-
-      this.movedViaStream = false;
-    } else {
-      // If we moved the native video element, move it back to its original parent
-      if (this.youtubeMovedContainer) {
-        try {
-          const movedVideo = this.youtubeMovedContainer.querySelector('video');
-          if (movedVideo && this.movedVideoOriginalParent) {
-            if (this.movedVideoNextSibling) {
-              this.movedVideoOriginalParent.insertBefore(movedVideo, this.movedVideoNextSibling);
+            const orig = movedVideo.__origStyle || '';
+            if (orig) {
+              movedVideo.setAttribute('style', orig);
             } else {
-              this.movedVideoOriginalParent.appendChild(movedVideo);
+              movedVideo.removeAttribute('style');
             }
+          } catch (e) {}
+          
+          // Move video back to original position
+          if (this.movedVideoNextSibling) {
+            this.movedVideoOriginalParent.insertBefore(movedVideo, this.movedVideoNextSibling);
+          } else {
+            this.movedVideoOriginalParent.appendChild(movedVideo);
           }
-          this.youtubeMovedContainer.remove();
-        } catch (err) {}
+          
+          // Remove placeholder if it exists
+          if (this.videoPlaceholder) {
+            this.videoPlaceholder.remove();
+            this.videoPlaceholder = null;
+          }
+        }
+        
+        this.youtubeMovedContainer.remove();
         this.youtubeMovedContainer = null;
         this.movedVideoOriginalParent = null;
         this.movedVideoNextSibling = null;
+        this.movedOriginalVideoElement = null;
+      } catch (err) {
+        console.error('Error restoring video position:', err);
       }
     }
 
@@ -424,6 +410,17 @@ class YouTubeBrainrotSplitter {
       try { this.restoreBtn.remove(); } catch (err) {}
       this.restoreBtn = null;
     }
+
+    // Clean up escape handlers
+    try {
+      if (this.escapeHandler) {
+        document.removeEventListener('keydown', this.escapeHandler, true);
+        window.removeEventListener('keydown', this.escapeHandler, true);
+      }
+      if (this.escapeHandlerKeyup) {
+        document.removeEventListener('keyup', this.escapeHandlerKeyup, true);
+      }
+    } catch (e) {}
 
   // Detach hover handlers
   try { this.detachHoverControls(); } catch (e) {}
@@ -566,59 +563,21 @@ class YouTubeBrainrotSplitter {
 
     this._hoverEnter = () => {
       try {
-        console.log('brainrot: hoverEnter triggered, movedViaStream=', this.movedViaStream);
+        console.log('brainrot: hoverEnter triggered');
         
-        // Show YouTube controls for both stream clone and moved video cases
+        // Create controls overlay if we have moved container
+        if (this.youtubeMovedContainer && !this.controlsOverlay) {
+          this.createControlsOverlay();
+        }
+        
+        // Show controls overlay
+        if (this.controlsOverlay) {
+          this.controlsOverlay.style.display = 'flex';
+        }
+
+        // Show YouTube controls for moved video case
         this._toggleYTControls(true);
         
-        if (this.movedViaStream) {
-          // Show the original video element and make it interactive
-          try { 
-            if (this.movedOriginalVideoElement) {
-              this.movedOriginalVideoElement.style.setProperty('opacity', '1', 'important'); 
-              this.movedOriginalVideoElement.style.setProperty('pointer-events', 'auto', 'important');
-              console.log('brainrot: native video visible and interactive');
-            }
-          } catch (e) {}
-
-          // Raise the original YouTube player container above everything
-          try {
-            if (this.originalVideoContainer) {
-              const origStyle = this.originalVideoContainer.getAttribute('style') || '';
-              this._origContainerHoverStyle = origStyle;
-              this.originalVideoContainer.style.cssText = `${origStyle}; z-index: 2147483680 !important; pointer-events: auto !important; visibility: visible !important;`;
-              console.log('brainrot: originalVideoContainer raised and interactive');
-            }
-          } catch (e) {}
-
-          // Lower the clone container z-index but keep it visible for video playback
-          try {
-            if (this.youtubeMovedContainer) {
-              this._origCloneZ = this.youtubeMovedContainer.style.zIndex || '';
-              this.youtubeMovedContainer.style.setProperty('z-index', '2147483650', 'important');
-              this.youtubeMovedContainer.style.pointerEvents = 'none';
-            }
-          } catch (e) {}
-
-          // Hide the clone video to show original underneath
-          try { 
-            if (this.leftClone) {
-              this.leftClone.style.setProperty('opacity', '0.1', 'important');
-              this.leftClone.style.pointerEvents = 'none';
-            }
-          } catch (e) {}
-        }
-
-        // If we moved native video, enable controls on it
-        if (!this.movedViaStream && this.youtubeMovedContainer) {
-          const mv = this.youtubeMovedContainer.querySelector('video');
-          try { 
-            if (mv) {
-              mv.controls = true;
-              mv.style.setProperty('pointer-events', 'auto', 'important');
-            }
-          } catch (e) {}
-        }
       } catch (err) {
         console.error('Error in hoverEnter:', err);
       }
@@ -628,53 +587,14 @@ class YouTubeBrainrotSplitter {
       try {
         console.log('brainrot: hoverLeave triggered');
         
+        // Hide controls overlay
+        if (this.controlsOverlay) {
+          this.controlsOverlay.style.display = 'none';
+        }
+
         // Hide YouTube UI to keep the layout clean
         this._toggleYTControls(false);
         
-        if (this.movedViaStream) {
-          // Restore original video container style
-          try {
-            if (this.originalVideoContainer) {
-              const base = this._origContainerHoverStyle || this.originalVideoContainer.getAttribute('style') || '';
-              this.originalVideoContainer.setAttribute('style', base);
-            }
-          } catch (e) {}
-          this._origContainerHoverStyle = null;
-          
-          // Hide the original video element again
-          try { 
-            if (this.movedOriginalVideoElement) {
-              this.movedOriginalVideoElement.style.setProperty('pointer-events', 'none', 'important'); 
-              this.movedOriginalVideoElement.style.setProperty('opacity', '0', 'important');
-            }
-          } catch (e) {}
-          
-          // Show back the clone video and restore its z-index
-          try { 
-            if (this.leftClone) {
-              this.leftClone.style.setProperty('opacity', '1', 'important');
-              this.leftClone.style.pointerEvents = 'auto';
-            }
-          } catch (e) {}
-          
-          // Re-enable pointer events on the clone container and restore z-index
-          try {
-            if (this.youtubeMovedContainer) {
-              this.youtubeMovedContainer.style.setProperty('z-index', this._origCloneZ || '2147483646', 'important');
-              this.youtubeMovedContainer.style.pointerEvents = 'auto';
-            }
-          } catch (e) {}
-        }
-
-        if (!this.movedViaStream && this.youtubeMovedContainer) {
-          const mv = this.youtubeMovedContainer.querySelector('video');
-          try { 
-            if (mv) {
-              mv.controls = false;
-              mv.style.pointerEvents = 'none';
-            }
-          } catch (e) {}
-        }
       } catch (err) {
         console.error('Error in hoverLeave:', err);
       }
@@ -784,6 +704,7 @@ class YouTubeBrainrotSplitter {
               el.style.setProperty('opacity', '1', 'important');
               el.style.setProperty('visibility', 'visible', 'important');
               el.style.setProperty('pointer-events', 'auto', 'important');
+              el.style.setProperty('z-index', '2147483681', 'important');
             }
           } catch (_) { 
             el.style.display = value; 
@@ -795,18 +716,349 @@ class YouTubeBrainrotSplitter {
       const player = document.querySelector('#movie_player');
       if (player && show) {
         player.style.setProperty('pointer-events', 'auto', 'important');
-        // Trigger YouTube's own hover state
-        player.classList.add('ytp-autohide');
-        setTimeout(() => {
-          player.classList.remove('ytp-autohide');
-        }, 100);
+        // Remove autohide class to force show controls
+        player.classList.remove('ytp-autohide');
+        // Force the player to show controls
+        player.classList.add('ytp-chrome-controls-visible');
+      } else if (player && !show) {
+        player.classList.remove('ytp-chrome-controls-visible');
       }
     } catch (e) {
       console.error('Error toggling YT controls:', e);
     }
   }
 
-  // Fallback helper: stop clone (if any) and move native video into the left container
+  // Force YouTube controls to be visible
+  _forceShowYTControls() {
+    try {
+      const player = document.querySelector('#movie_player');
+      if (player) {
+        // Simulate mouse movement over the player to trigger control visibility
+        const mouseEvent = new MouseEvent('mousemove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 100,
+          clientY: 100
+        });
+        player.dispatchEvent(mouseEvent);
+        
+        // Also try triggering mouseenter on the player
+        const enterEvent = new MouseEvent('mouseenter', {
+          bubbles: true,
+          cancelable: true
+        });
+        player.dispatchEvent(enterEvent);
+        
+        // Force remove autohide classes
+        player.classList.remove('ytp-autohide');
+        player.classList.add('ytp-user-active');
+        
+        // Force show all control elements
+        const controlElements = player.querySelectorAll('.ytp-chrome-top, .ytp-chrome-bottom, .ytp-chrome-controls, .ytp-progress-bar-container');
+        controlElements.forEach(el => {
+          el.style.setProperty('display', 'block', 'important');
+          el.style.setProperty('opacity', '1', 'important');
+          el.style.setProperty('visibility', 'visible', 'important');
+          el.style.setProperty('pointer-events', 'auto', 'important');
+          el.style.setProperty('z-index', '2147483682', 'important');
+        });
+        
+        console.log('brainrot: Force showed YT controls');
+      }
+    } catch (e) {
+      console.error('Error force showing YT controls:', e);
+    }
+  }
+
+  // Create custom controls overlay
+  createControlsOverlay() {
+    try {
+      if (this.controlsOverlay) return;
+
+      this.controlsOverlay = document.createElement('div');
+      this.controlsOverlay.className = 'brainrot-controls-overlay';
+      this.controlsOverlay.style.cssText = `
+        position: absolute !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        z-index: 2147483680 !important;
+        display: none !important;
+        flex-direction: column !important;
+        justify-content: flex-end !important;
+        pointer-events: none !important;
+        background: linear-gradient(transparent, rgba(0,0,0,0.8)) !important;
+        padding-top: 40px !important;
+      `;
+
+      // Create bottom controls bar
+      const bottomControls = document.createElement('div');
+      bottomControls.style.cssText = `
+        display: flex !important;
+        align-items: center !important;
+        padding: 12px 15px !important;
+        background: rgba(0,0,0,0.9) !important;
+        pointer-events: auto !important;
+        gap: 12px !important;
+        border-top: 1px solid rgba(255,255,255,0.1) !important;
+      `;
+
+      // Play/Pause button
+      const playBtn = document.createElement('button');
+      playBtn.innerHTML = '▶️';
+      playBtn.style.cssText = `
+        background: transparent !important;
+        border: none !important;
+        color: white !important;
+        font-size: 20px !important;
+        cursor: pointer !important;
+        padding: 8px !important;
+        pointer-events: auto !important;
+        border-radius: 4px !important;
+        transition: background 0.2s !important;
+      `;
+      
+      playBtn.addEventListener('mouseenter', () => {
+        playBtn.style.background = 'rgba(255,255,255,0.1)';
+      });
+      
+      playBtn.addEventListener('mouseleave', () => {
+        playBtn.style.background = 'transparent';
+      });
+      
+      playBtn.addEventListener('click', () => {
+        try {
+          const video = this.movedOriginalVideoElement || document.querySelector('#movie_player video');
+          
+          if (video) {
+            if (video.paused) {
+              video.play();
+              playBtn.innerHTML = '⏸️';
+            } else {
+              video.pause();
+              playBtn.innerHTML = '▶️';
+            }
+          }
+        } catch (e) {
+          console.error('Error toggling play/pause:', e);
+        }
+      });
+
+      // Volume control
+      const volumeBtn = document.createElement('button');
+      volumeBtn.innerHTML = '🔊';
+      volumeBtn.style.cssText = `
+        background: transparent !important;
+        border: none !important;
+        color: white !important;
+        font-size: 18px !important;
+        cursor: pointer !important;
+        padding: 8px !important;
+        pointer-events: auto !important;
+        border-radius: 4px !important;
+        transition: background 0.2s !important;
+      `;
+      
+      volumeBtn.addEventListener('mouseenter', () => {
+        volumeBtn.style.background = 'rgba(255,255,255,0.1)';
+      });
+      
+      volumeBtn.addEventListener('mouseleave', () => {
+        volumeBtn.style.background = 'transparent';
+      });
+      
+      volumeBtn.addEventListener('click', () => {
+        try {
+          const video = this.movedOriginalVideoElement || document.querySelector('#movie_player video');
+          if (video) {
+            video.muted = !video.muted;
+            volumeBtn.innerHTML = video.muted ? '🔇' : '🔊';
+          }
+        } catch (e) {}
+      });
+
+      // Progress bar
+      const progressContainer = document.createElement('div');
+      progressContainer.style.cssText = `
+        flex: 1 !important;
+        height: 6px !important;
+        background: rgba(255,255,255,0.3) !important;
+        cursor: pointer !important;
+        margin: 0 15px !important;
+        pointer-events: auto !important;
+        position: relative !important;
+        border-radius: 3px !important;
+      `;
+
+      const progressBar = document.createElement('div');
+      progressBar.style.cssText = `
+        height: 100% !important;
+        background: #ff0000 !important;
+        width: 0% !important;
+        pointer-events: none !important;
+        border-radius: 3px !important;
+        transition: width 0.1s ease !important;
+      `;
+
+      progressContainer.appendChild(progressBar);
+
+      progressContainer.addEventListener('click', (e) => {
+        try {
+          const video = this.movedOriginalVideoElement || document.querySelector('#movie_player video');
+          
+          if (video && video.duration) {
+            const rect = progressContainer.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            const newTime = percent * video.duration;
+            video.currentTime = newTime;
+          }
+        } catch (e) {
+          console.error('Error seeking video:', e);
+        }
+      });
+
+      // Time display
+      const timeDisplay = document.createElement('div');
+      timeDisplay.style.cssText = `
+        color: white !important;
+        font-size: 14px !important;
+        font-family: Arial, sans-serif !important;
+        white-space: nowrap !important;
+        pointer-events: none !important;
+      `;
+      timeDisplay.textContent = '0:00 / 0:00';
+
+      // Update progress bar and time display
+      this.progressUpdateInterval = setInterval(() => {
+        try {
+          const video = this.movedOriginalVideoElement || document.querySelector('#movie_player video');
+          
+          if (video && video.duration) {
+            const percent = (video.currentTime / video.duration) * 100;
+            progressBar.style.width = percent + '%';
+            
+            // Update time display
+            const currentMin = Math.floor(video.currentTime / 60);
+            const currentSec = Math.floor(video.currentTime % 60);
+            const durationMin = Math.floor(video.duration / 60);
+            const durationSec = Math.floor(video.duration % 60);
+            timeDisplay.textContent = `${currentMin}:${currentSec.toString().padStart(2, '0')} / ${durationMin}:${durationSec.toString().padStart(2, '0')}`;
+            
+            // Update button states
+            playBtn.innerHTML = video.paused ? '▶️' : '⏸️';
+            volumeBtn.innerHTML = video.muted ? '🔇' : '🔊';
+          }
+        } catch (e) {}
+      }, 200);
+
+      // Fullscreen button
+      const fullscreenBtn = document.createElement('button');
+      fullscreenBtn.innerHTML = '⛶';
+      fullscreenBtn.style.cssText = `
+        background: transparent !important;
+        border: none !important;
+        color: white !important;
+        font-size: 18px !important;
+        cursor: pointer !important;
+        padding: 8px !important;
+        pointer-events: auto !important;
+        border-radius: 4px !important;
+        transition: background 0.2s !important;
+      `;
+      
+      fullscreenBtn.addEventListener('mouseenter', () => {
+        fullscreenBtn.style.background = 'rgba(255,255,255,0.1)';
+      });
+      
+      fullscreenBtn.addEventListener('mouseleave', () => {
+        fullscreenBtn.style.background = 'transparent';
+      });
+      
+      fullscreenBtn.addEventListener('click', () => {
+        try {
+          this.deactivateSplitScreen();
+        } catch (e) {}
+      });
+
+      bottomControls.appendChild(playBtn);
+      bottomControls.appendChild(volumeBtn);
+      bottomControls.appendChild(progressContainer);
+      bottomControls.appendChild(timeDisplay);
+      bottomControls.appendChild(fullscreenBtn);
+
+      this.controlsOverlay.appendChild(bottomControls);
+      this.youtubeMovedContainer.appendChild(this.controlsOverlay);
+
+      console.log('brainrot: Created controls overlay at bottom');
+    } catch (e) {
+      console.error('Error creating controls overlay:', e);
+    }
+  }
+
+  // Set up synchronization between original video and clone
+  _setupVideoSync() {
+    try {
+      if (!this.movedOriginalVideoElement || !this.leftClone) return;
+
+      const originalVideo = this.movedOriginalVideoElement;
+      const cloneVideo = this.leftClone;
+
+      // Sync events from original to clone
+      const syncEvents = ['play', 'pause', 'seeking', 'seeked', 'timeupdate'];
+      
+      syncEvents.forEach(event => {
+        originalVideo.addEventListener(event, () => {
+          try {
+            if (event === 'play' && cloneVideo.paused) {
+              cloneVideo.currentTime = originalVideo.currentTime;
+              cloneVideo.play();
+            } else if (event === 'pause' && !cloneVideo.paused) {
+              cloneVideo.pause();
+            } else if (event === 'seeking' || event === 'seeked') {
+              cloneVideo.currentTime = originalVideo.currentTime;
+            }
+          } catch (e) {
+            console.log('Sync error:', e);
+          }
+        });
+      });
+
+      // Regular sync check
+      this._syncInterval = setInterval(() => {
+        try {
+          if (originalVideo && cloneVideo) {
+            // Sync time if they're out of sync by more than 0.3 seconds
+            if (Math.abs(cloneVideo.currentTime - originalVideo.currentTime) > 0.3) {
+              cloneVideo.currentTime = originalVideo.currentTime;
+            }
+            
+            // Sync play/pause state
+            if (originalVideo.paused && !cloneVideo.paused) {
+              cloneVideo.pause();
+            } else if (!originalVideo.paused && cloneVideo.paused) {
+              cloneVideo.currentTime = originalVideo.currentTime;
+              cloneVideo.play();
+            }
+          }
+        } catch (e) {}
+      }, 500);
+
+      console.log('brainrot: Video sync setup complete');
+    } catch (e) {
+      console.error('Error setting up video sync:', e);
+    }
+  }
+
+  // Clean up video sync
+  _cleanupVideoSync() {
+    try {
+      if (this._syncInterval) {
+        clearInterval(this._syncInterval);
+        this._syncInterval = null;
+      }
+    } catch (e) {}
+  }
   _fallbackMoveNativeVideo(nativeVideo) {
     try {
       // clear any left clone check timer

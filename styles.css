@@ -56,11 +56,33 @@ body.brainrot-split-active {
 body.brainrot-split-active .ytp-chrome-top,
 body.brainrot-split-active .ytp-chrome-bottom,
 body.brainrot-split-active .ytp-gradient-top,
-body.brainrot-split-active .ytp-gradient-bottom {
+body.brainrot-split-active .ytp-gradient-bottom,
+body.brainrot-split-active .ytp-chrome-controls,
+body.brainrot-split-active .ytp-progress-bar-container {
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
   transition: opacity 0.2s ease !important;
+}
+
+/* Force show controls when they have the visible class */
+body.brainrot-split-active .ytp-chrome-controls-visible .ytp-chrome-top,
+body.brainrot-split-active .ytp-chrome-controls-visible .ytp-chrome-bottom,
+body.brainrot-split-active .ytp-chrome-controls-visible .ytp-gradient-top,
+body.brainrot-split-active .ytp-chrome-controls-visible .ytp-gradient-bottom,
+body.brainrot-split-active .ytp-chrome-controls-visible .ytp-chrome-controls,
+body.brainrot-split-active .ytp-chrome-controls-visible .ytp-progress-bar-container,
+body.brainrot-split-active .ytp-user-active .ytp-chrome-top,
+body.brainrot-split-active .ytp-user-active .ytp-chrome-bottom,
+body.brainrot-split-active .ytp-user-active .ytp-gradient-top,
+body.brainrot-split-active .ytp-user-active .ytp-gradient-bottom,
+body.brainrot-split-active .ytp-user-active .ytp-chrome-controls,
+body.brainrot-split-active .ytp-user-active .ytp-progress-bar-container {
+  display: block !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  z-index: 2147483682 !important;
+  visibility: visible !important;
 }
 
 /* Show controls when hovering over the left video area */
@@ -71,7 +93,9 @@ body.brainrot-split-active .youtube-moved-container:hover ~ * .ytp-gradient-bott
 body.brainrot-split-active #movie_player:hover .ytp-chrome-top,
 body.brainrot-split-active #movie_player:hover .ytp-chrome-bottom,
 body.brainrot-split-active #movie_player:hover .ytp-gradient-top,
-body.brainrot-split-active #movie_player:hover .ytp-gradient-bottom {
+body.brainrot-split-active #movie_player:hover .ytp-gradient-bottom,
+body.brainrot-split-active #movie_player:hover .ytp-chrome-controls,
+body.brainrot-split-active #movie_player:hover .ytp-progress-bar-container {
   display: block !important;
   opacity: 1 !important;
   pointer-events: auto !important;
@@ -169,9 +193,37 @@ body.brainrot-split-active video {
   pointer-events: auto !important;
 }
 
+/* Ensure all interactive elements in YouTube controls work */
+body.brainrot-split-active .ytp-chrome-controls button,
+body.brainrot-split-active .ytp-chrome-controls .ytp-play-button,
+body.brainrot-split-active .ytp-chrome-controls .ytp-volume-panel,
+body.brainrot-split-active .ytp-chrome-controls .ytp-time-display,
+body.brainrot-split-active .ytp-chrome-controls .ytp-fullscreen-button,
+body.brainrot-split-active .ytp-progress-bar,
+body.brainrot-split-active .ytp-progress-bar-container,
+body.brainrot-split-active .ytp-volume-slider {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Ensure the progress bar is fully interactive */
+body.brainrot-split-active .ytp-progress-bar-container {
+  height: auto !important;
+  min-height: 12px !important;
+}
+
 /* Override any conflicting styles that might hide controls */
 body.brainrot-split-active .ytp-autohide .ytp-chrome-bottom,
 body.brainrot-split-active .ytp-autohide .ytp-chrome-top {
   opacity: 1 !important;
   display: block !important;
+}
+
+/* Force visibility for user-active state */
+body.brainrot-split-active .ytp-user-active .ytp-chrome-bottom,
+body.brainrot-split-active .ytp-user-active .ytp-chrome-top {
+  opacity: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+  transform: none !important;
 }
