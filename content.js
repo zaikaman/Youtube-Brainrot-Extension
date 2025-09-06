@@ -1488,7 +1488,75 @@ class YouTubeBrainrotSplitter {
     // Create brainrot container on the right
     this.createBrainrotContainer();
 
+    // Ensure exit button is created for Fullstack
+    this.createExitButton();
+
     console.log('Fullstack layout applied');
+  }
+
+  createExitButton() {
+    console.log('brainrot: Creating exit button for Fullstack');
+    
+    // Remove existing button if any
+    if (this.restoreBtn) {
+      try {
+        this.restoreBtn.remove();
+      } catch (e) {}
+      this.restoreBtn = null;
+    }
+
+    // Create exit button
+    this.restoreBtn = document.createElement('button');
+    this.restoreBtn.textContent = '✕ Exit Split';
+    this.restoreBtn.setAttribute('type', 'button');
+    this.restoreBtn.style.cssText = `
+      position: fixed !important;
+      top: 20px !important;
+      right: 20px !important;
+      z-index: 2147483699 !important;
+      padding: 12px 16px !important;
+      background: rgba(0,0,0,0.9) !important;
+      color: white !important;
+      border: 2px solid rgba(255,255,255,0.5) !important;
+      border-radius: 8px !important;
+      cursor: pointer !important;
+      pointer-events: auto !important;
+      font-size: 16px !important;
+      font-family: Arial, sans-serif !important;
+      font-weight: bold !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.7) !important;
+      transition: all 0.2s ease !important;
+    `;
+
+    // Add hover effects
+    this.restoreBtn.addEventListener('mouseenter', () => {
+      if (this.restoreBtn) {
+        this.restoreBtn.style.background = 'rgba(255,0,0,0.9)';
+        this.restoreBtn.style.transform = 'scale(1.1)';
+        this.restoreBtn.style.borderColor = 'white';
+      }
+    });
+
+    this.restoreBtn.addEventListener('mouseleave', () => {
+      if (this.restoreBtn) {
+        this.restoreBtn.style.background = 'rgba(0,0,0,0.9)';
+        this.restoreBtn.style.transform = 'scale(1)';
+        this.restoreBtn.style.borderColor = 'rgba(255,255,255,0.5)';
+      }
+    });
+
+    // Add click handler
+    this.restoreBtn.addEventListener('click', (e) => {
+      console.log('brainrot: Exit button clicked');
+      e.preventDefault();
+      e.stopPropagation();
+      this.userManuallyExited = true;
+      this.deactivateSplitScreen();
+    });
+
+    // Add to body
+    document.body.appendChild(this.restoreBtn);
+    console.log('brainrot: Exit button created and added to DOM');
   }
 
   destroy() {
