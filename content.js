@@ -544,19 +544,29 @@ class YouTubeBrainrotSplitter {
     // Restore hidden elements
     this.restorePageElements();
 
-  // Try to force YouTube player to exit its internal fullscreen state so we don't auto-reactivate
+  // For theater mode, we should exit theater mode instead of dealing with fullscreen
     try {
-      const fsBtn = document.querySelector('#movie_player .ytp-fullscreen-button');
-      if (fsBtn && fsBtn.getAttribute) {
-        const ariaPressed = fsBtn.getAttribute('aria-pressed');
-        if (ariaPressed === 'true') {
-          try { fsBtn.click(); } catch (e) {}
+      const theaterBtn = document.querySelector('#movie_player .ytp-size-button');
+      if (theaterBtn) {
+        // Check if we're in theater mode and exit it
+        const ytdApp = document.querySelector('ytd-app');
+        const watchFlexy = document.querySelector('ytd-watch-flexy');
+        const isCurrentlyTheater = (
+          (ytdApp && ytdApp.hasAttribute('theater')) ||
+          (watchFlexy && watchFlexy.hasAttribute('theater'))
+        );
+        if (isCurrentlyTheater) {
+          // Set flag before clicking to prevent re-activation
+          this.userManuallyExited = true;
+          try { 
+            theaterBtn.click(); 
+            console.log('brainrot: Exited theater mode via button click');
+          } catch (e) {}
         }
       }
-      // Fallback: simulate 'f' key to toggle fullscreen off
-      const evt = new KeyboardEvent('keydown', { key: 'f', code: 'KeyF', keyCode: 70, which: 70, bubbles: true, cancelable: true });
-      document.dispatchEvent(evt);
-    } catch (e) {}
+    } catch (e) {
+      console.log('brainrot: Could not exit theater mode:', e);
+    }
 
   // Keep escape key handler for the lifetime of the content script so it works on re-activate
 
