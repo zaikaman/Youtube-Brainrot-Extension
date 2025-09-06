@@ -1,0 +1,129 @@
+/* CSS for YouTube Brainrot Split Screen Extension */
+
+/* Hide default elements when split screen is active */
+body.brainrot-split-active {
+  overflow: hidden !important;
+}
+
+/* YouTube video clone container - left half */
+.youtube-clone-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 66.6667vw !important;
+  height: 100vh !important;
+  z-index: 2147483646 !important;
+  background: black !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.youtube-clone-container video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Brainrot container - right half */
+.brainrot-container {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 33.3333vw !important;
+  height: 100vh !important;
+  z-index: 2147483647 !important;
+  background: black !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important; /* Hide any overflow from scaled video */
+}
+
+/* Brainrot video - now HTML5 video element */
+.brainrot-video {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  background: black !important;
+  object-fit: cover !important; /* Fill entire space, may crop to fit aspect ratio */
+}
+
+/* Hide YouTube UI elements when in split mode */
+body.brainrot-split-active .ytp-chrome-top,
+body.brainrot-split-active .ytp-chrome-bottom,
+body.brainrot-split-active .ytp-gradient-top,
+body.brainrot-split-active .ytp-gradient-bottom {
+  display: none !important;
+}
+
+/* Ensure YouTube video fills its container properly */
+body.brainrot-split-active .brainrot-youtube-half video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+/* Override any YouTube fullscreen styles that might hide video */
+body.brainrot-split-active .ytp-fullscreen .html5-video-container,
+body.brainrot-split-active .ytp-fullscreen video,
+body.brainrot-split-active .brainrot-youtube-half .html5-video-container,
+body.brainrot-split-active .brainrot-youtube-half video {
+  width: 100% !important;
+  height: 100% !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  position: relative !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 1 !important;
+}
+
+/* Force show YouTube player even in fullscreen mode */
+body.brainrot-split-active .html5-video-player {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Hide other page elements */
+body.brainrot-split-active #masthead,
+body.brainrot-split-active #secondary,
+body.brainrot-split-active #primary:not(#movie_player),
+body.brainrot-split-active ytd-app:not(.brainrot-youtube-half) > *:not(#movie_player):not(.brainrot-container) {
+  display: none !important;
+}
+
+/* Smooth transitions */
+.brainrot-youtube-half,
+.brainrot-container {
+  transition: all 0.3s ease-in-out !important;
+}
+
+/* Additional styles for better video display */
+body.brainrot-split-active .brainrot-youtube-half .html5-video-player {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+}
+
+/* Ensure video element is always visible */
+body.brainrot-split-active video {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 1 !important;
+}
+
+/* Ensure brainrot video is properly contained */
+.brainrot-video {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+}

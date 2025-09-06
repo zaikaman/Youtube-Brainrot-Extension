@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Brainrot Split Screen",
+  "version": "1.0",
+  "description": "Automatically splits screen when YouTube goes fullscreen - YouTube on left, brainrot videos on right",
+  
+  "permissions": [
+    "activeTab",
+    "tabs"
+  ],
+  
+  "host_permissions": [
+    "*://www.youtube.com/*",
+    "*://youtube.com/*"
+  ],
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*", "*://youtube.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ],
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["brainrot-videos.json", "brainrot-video.mp4"],
+      "matches": ["*://www.youtube.com/*", "*://youtube.com/*"]
+    }
+  ]
+}

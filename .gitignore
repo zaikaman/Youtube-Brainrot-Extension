@@ -1,0 +1,23 @@
+# Ignore video files
+*.mp4
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# Node (if applicable)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build / artifacts
+dist/
+build/
+*.zip
+
+# Environment files
+.env
