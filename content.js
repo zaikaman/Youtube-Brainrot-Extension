@@ -743,14 +743,20 @@ class YouTubeBrainrotSplitter {
   }
 
   exitFullstackMode() {
-    // For Fullstack.edu.vn - just pause videos if needed
+    // For Fullstack.edu.vn - restore iframe to original position
     try {
-      const videos = document.querySelectorAll('video');
-      videos.forEach(video => {
-        // We don't pause the video, just let it continue playing
-        // The user can manually pause if they want
-        console.log('brainrot: Exited split mode on Fullstack.edu.vn');
-      });
+      console.log('brainrot: Exiting split mode on Fullstack.edu.vn');
+      
+      // Find and restore YouTube iframe
+      const youtubeIframe = document.querySelector('iframe[src*="youtube.com"], iframe[src*="youtu.be"]');
+      if (youtubeIframe) {
+        // Remove our custom styles to restore original iframe position
+        youtubeIframe.removeAttribute('style');
+        console.log('brainrot: Restored YouTube iframe styles');
+      }
+      
+      // Don't need to do anything special for videos since they're in iframe
+      console.log('brainrot: Fullstack exit complete');
     } catch (e) {
       console.log('brainrot: Error in exitFullstackMode:', e);
     }
@@ -1548,10 +1554,18 @@ class YouTubeBrainrotSplitter {
     // Add click handler
     this.restoreBtn.addEventListener('click', (e) => {
       console.log('brainrot: Exit button clicked');
+      console.log('brainrot: Current isActive:', this.isActive);
       e.preventDefault();
       e.stopPropagation();
+      
+      // Force deactivation even if isActive is false
+      this.isActive = true;
       this.userManuallyExited = true;
+      this.preventAutoDeactivate = false;
+      
+      console.log('brainrot: About to call deactivateSplitScreen');
       this.deactivateSplitScreen();
+      console.log('brainrot: deactivateSplitScreen called');
     });
 
     // Add to body
