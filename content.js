@@ -31,8 +31,17 @@ class YouTubeBrainrotSplitter {
       this.handleTheaterModeChange();
     });
     
-    // Observe changes to the movie player element
+    // Observe changes to the page element and movie player
+    const pageElement = document.querySelector('#page');
     const moviePlayer = document.querySelector('#movie_player');
+    
+    if (pageElement) {
+      theaterObserver.observe(pageElement, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+    }
+    
     if (moviePlayer) {
       theaterObserver.observe(moviePlayer, {
         attributes: true,
@@ -115,9 +124,13 @@ class YouTubeBrainrotSplitter {
       if (theaterButton && !theaterButton.hasAttribute('data-brainrot-listener')) {
         theaterButton.setAttribute('data-brainrot-listener', 'true');
         theaterButton.addEventListener('click', () => {
+          console.log('brainrot: Theater button clicked');
           // Use a small delay to let YouTube update the DOM
-          setTimeout(() => this.handleTheaterModeChange(), 100);
+          setTimeout(() => this.handleTheaterModeChange(), 200);
+          // Also try multiple delays to catch the state change
+          setTimeout(() => this.handleTheaterModeChange(), 500);
         });
+        console.log('brainrot: Theater button listener added');
       }
     };
 
@@ -141,12 +154,24 @@ class YouTubeBrainrotSplitter {
   handleTheaterModeChange() {
     // Check if YouTube player is in theater mode (not fullscreen)
     const playerContainer = document.querySelector('#movie_player');
-    const isTheaterMode = playerContainer && (
-      playerContainer.classList.contains('ytp-size-large') ||
-      document.querySelector('.ytp-size-large') ||
-      document.body.classList.contains('theater-mode') ||
-      document.querySelector('#page.watch-wide')
+    const pageContainer = document.querySelector('#page');
+    
+    // Debug: Log current classes
+    console.log('brainrot: Player classes:', playerContainer?.className);
+    console.log('brainrot: Page classes:', pageContainer?.className);
+    console.log('brainrot: Body classes:', document.body.className);
+    
+    // Check for theater mode indicators
+    const isTheaterMode = (
+      // YouTube's theater mode classes
+      (pageContainer && pageContainer.classList.contains('watch-wide')) ||
+      (playerContainer && playerContainer.classList.contains('ytp-large-width-mode')) ||
+      document.body.classList.contains('fullscreen') ||
+      // Alternative checks
+      window.location.search.includes('theater=1')
     );
+
+    console.log('brainrot: Theater mode detected:', isTheaterMode);
 
   // Activate when YouTube is in theater mode, not fullscreen
   const shouldActivate = isTheaterMode;
