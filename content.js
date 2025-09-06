@@ -3,6 +3,7 @@
 class YouTubeBrainrotSplitter {
   constructor() {
     this.isActive = false;
+    this.allowAutoDeactivate = false; // Disable all auto-deactivation
     this.brainrotContainer = null;
     this.brainrotVideo = null;
     this.originalVideoContainer = null;
@@ -92,11 +93,8 @@ class YouTubeBrainrotSplitter {
       console.log('Background script communication unavailable');
     }
 
-    // Initial check
-    setTimeout(() => this.handleTheaterModeChange(), 1000);
-
-    // Add listener for theater mode button clicks
-    this.setupTheaterModeListener();
+    // Create custom Split Mode button
+    this.createSplitModeButton();
 
     // Setup escape handlers for YouTube
     this.setupEscapeHandlers();
@@ -270,29 +268,120 @@ class YouTubeBrainrotSplitter {
     });
   }
 
-  setupTheaterModeListener() {
-    // Function to check and listen for theater mode button
-    const checkForTheaterButton = () => {
-      const theaterButton = document.querySelector('.ytp-size-button');
-      if (theaterButton && !theaterButton.hasAttribute('data-brainrot-listener')) {
-        theaterButton.setAttribute('data-brainrot-listener', 'true');
-        theaterButton.addEventListener('click', () => {
-          console.log('brainrot: Theater button clicked');
-          // Use a small delay to let YouTube update the DOM
-          setTimeout(() => this.handleTheaterModeChange(), 200);
-          // Also try multiple delays to catch the state change
-          setTimeout(() => this.handleTheaterModeChange(), 500);
+  createSplitModeButton() {
+    // Wait for YouTube player to load
+    const checkForPlayer = () => {
+      const rightControls = document.querySelector('.ytp-right-controls');
+      if (rightControls && !document.querySelector('#brainrot-split-btn')) {
+        // Create split mode button
+        const splitBtn = document.createElement('button');
+        splitBtn.id = 'brainrot-split-btn';
+        splitBtn.className = 'ytp-button';
+        splitBtn.setAttribute('title', 'Toggle Split Mode');
+        splitBtn.setAttribute('aria-label', 'Toggle Split Mode');
+        
+        // Create button icon (split screen icon)
+        splitBtn.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 4v16H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h4zm2 0h4v16h-4V4zm6 0h4c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2h-4V4z" opacity="0.9"/>
+          </svg>
+        `;
+        
+        splitBtn.style.cssText = `
+          width: 48px !important;
+          height: 48px !important;
+          padding: 12px !important;
+          margin: 0 !important;
+          border: none !important;
+          background: transparent !important;
+          cursor: pointer !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          transition: all 0.15s ease !important;
+          opacity: 0.9 !important;
+          color: white !important;
+          border-radius: 0 !important;
+          vertical-align: top !important;
+          position: relative !important;
+          transform: translateY(-2px) !important;
+        `;
+        
+        // Add hover effect
+        splitBtn.addEventListener('mouseenter', () => {
+          splitBtn.style.backgroundColor = 'rgba(255,255,255,0.1)';
+          splitBtn.style.opacity = '1';
         });
-        console.log('brainrot: Theater button listener added');
+        
+        splitBtn.addEventListener('mouseleave', () => {
+          if (!this.isActive) {
+            splitBtn.style.backgroundColor = 'transparent';
+            splitBtn.style.opacity = '0.9';
+          }
+        });
+        
+        // Add click handler
+        splitBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          console.log('brainrot: Split Mode button clicked, isActive:', this.isActive);
+          
+          if (!this.isActive) {
+            console.log('brainrot: Activating split mode');
+            this.userManuallyExited = false;
+            this.activateSplitScreen();
+            // Update button appearance
+            splitBtn.style.backgroundColor = 'rgba(255,0,0,0.2)';
+            splitBtn.style.opacity = '1';
+            splitBtn.innerHTML = `
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 4v16H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h4zm2 0h4v16h-4V4zm6 0h4c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2h-4V4z" opacity="1"/>
+                <circle cx="12" cy="12" r="2" fill="white"/>
+              </svg>
+            `;
+          } else {
+            console.log('brainrot: Deactivating split mode');
+            this.userManuallyExited = true;
+            this.deactivateSplitScreen();
+            // Reset button appearance
+            splitBtn.style.backgroundColor = 'transparent';
+            splitBtn.style.opacity = '0.9';
+            splitBtn.innerHTML = `
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 4v16H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h4zm2 0h4v16h-4V4zm6 0h4c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2h-4V4z" opacity="0.9"/>
+              </svg>
+            `;
+          }
+        });
+        
+        // Insert button into YouTube controls (before fullscreen button)
+        const fullscreenBtn = rightControls.querySelector('.ytp-fullscreen-button');
+        const settingsBtn = rightControls.querySelector('.ytp-settings-button');
+        
+        // Try to insert before fullscreen button, fallback to before settings, then append
+        if (fullscreenBtn) {
+          rightControls.insertBefore(splitBtn, fullscreenBtn);
+          console.log('brainrot: Split Mode button inserted before fullscreen button');
+        } else if (settingsBtn) {
+          rightControls.insertBefore(splitBtn, settingsBtn);
+          console.log('brainrot: Split Mode button inserted before settings button');
+        } else {
+          rightControls.appendChild(splitBtn);
+          console.log('brainrot: Split Mode button appended to right controls');
+        }
+        
+        console.log('brainrot: Split Mode button created and added to YouTube controls');
+        this.splitModeBtn = splitBtn;
       }
     };
 
     // Check immediately and set up observer for dynamic content
-    checkForTheaterButton();
+    checkForPlayer();
     
-    // Use MutationObserver to catch dynamically added elements
+    // Use MutationObserver to catch when YouTube player loads
     const observer = new MutationObserver(() => {
-      checkForTheaterButton();
+      checkForPlayer();
     });
     
     observer.observe(document.body, {
@@ -301,20 +390,17 @@ class YouTubeBrainrotSplitter {
     });
 
     // Also check periodically as backup
-    this.theaterCheckInterval = setInterval(checkForTheaterButton, 2000);
+    this.playerCheckInterval = setInterval(checkForPlayer, 2000);
   }
 
   handleTheaterModeChange() {
+    // This function is now mainly for cleanup when YouTube changes state
+    // We don't auto-activate split mode anymore, only manual activation via button
+    
     // Check if YouTube player is in theater mode (not fullscreen)
     const playerContainer = document.querySelector('#movie_player');
     const pageContainer = document.querySelector('#page') || document.querySelector('ytd-watch-flexy');
     const ytdApp = document.querySelector('ytd-app');
-    
-    // Debug: Log current classes
-    console.log('brainrot: Player classes:', playerContainer?.className);
-    console.log('brainrot: Page classes:', pageContainer?.className);
-    console.log('brainrot: YTD App classes:', ytdApp?.className);
-    console.log('brainrot: Body classes:', document.body.className);
     
     // Theater mode is indicated by watch-wide class or theater attribute
     const isTheaterMode = (
@@ -325,22 +411,21 @@ class YouTubeBrainrotSplitter {
       (document.querySelector('[theater]'))
     );
 
-    console.log('brainrot: Theater mode detected:', isTheaterMode);
+    console.log('brainrot: Theater mode detected:', isTheaterMode, 'Split active:', this.isActive);
 
-  // Activate when YouTube is in theater mode, not fullscreen
-  const shouldActivate = isTheaterMode;
-
-    if (shouldActivate && !this.isActive && !this.userManuallyExited) {
-      this.activateSplitScreen();
-    } else if (!shouldActivate && this.isActive && !this.preventAutoDeactivate) {
-      this.deactivateSplitScreen();
-    }
+    // DISABLED: Only manual deactivation via Split Mode button allowed
+    // Don't auto-deactivate split mode based on theater mode changes
+    // Auto-deactivation is completely disabled via allowAutoDeactivate flag
+    // if (!isTheaterMode && this.isActive && !this.preventAutoDeactivate && this.allowAutoDeactivate) {
+    //   console.log('brainrot: Deactivating split mode because left theater mode');
+    //   this.deactivateSplitScreen();
+    // }
 
     // Notify background script (optional, may fail if context invalidated)
     try {
       chrome.runtime.sendMessage({
         action: 'fullscreenChanged',
-        isFullscreen: shouldActivate
+        isFullscreen: isTheaterMode
       });
     } catch (error) {
       // Ignore errors - extension works without background communication
@@ -365,11 +450,43 @@ class YouTubeBrainrotSplitter {
     // Allow auto-deactivation after layout is applied
     setTimeout(() => {
       this.preventAutoDeactivate = false;
-    }, 500);
+      
+      // Ensure video is playing if it was playing before
+      try {
+        const video = this.movedOriginalVideoElement || document.querySelector('#movie_player video');
+        if (video && video.readyState >= 2) { // HAVE_CURRENT_DATA
+          // Try to resume playback if it was interrupted
+          if (video.paused && video.currentTime > 0) {
+            video.play().catch(e => console.log('Resume play failed:', e));
+          }
+        }
+      } catch (e) {
+        console.log('Error checking video state:', e);
+      }
+    }, 1000); // Increased delay to ensure everything is settled
   }
 
   cleanupState() {
     console.log('brainrot: Cleaning up state before activation');
+    
+    // Force cleanup any existing overlay elements that might be stuck
+    const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top, .brainrot-overlay');
+    existingOverlays.forEach(overlay => {
+      try {
+        overlay.style.display = 'none !important';
+        overlay.style.visibility = 'hidden !important';
+        overlay.style.pointerEvents = 'none !important';
+        overlay.remove();
+      } catch (e) {}
+    });
+    
+    // Clean up any stuck video placeholders
+    const existingPlaceholders = document.querySelectorAll('.brainrot-video-placeholder, [data-brainrot-placeholder]');
+    existingPlaceholders.forEach(placeholder => {
+      try {
+        placeholder.remove();
+      } catch (e) {}
+    });
     
     // Reset all container references
     this.originalVideoContainer = null;
@@ -388,6 +505,11 @@ class YouTubeBrainrotSplitter {
       this.progressUpdateInterval = null;
     }
     
+    if (this.videoStateMonitor) {
+      clearInterval(this.videoStateMonitor);
+      this.videoStateMonitor = null;
+    }
+    
     // Remove any leftover classes from body
     document.body.classList.remove('brainrot-split-active');
     
@@ -402,7 +524,77 @@ class YouTubeBrainrotSplitter {
       existingMoved.remove();
     }
     
+    // Force restore original player container visibility
+    const playerContainer = document.querySelector('#movie_player');
+    if (playerContainer) {
+      try {
+        playerContainer.style.visibility = 'visible';
+        playerContainer.style.pointerEvents = 'auto';
+        playerContainer.style.removeProperty('visibility');
+        playerContainer.style.removeProperty('pointer-events');
+      } catch (e) {}
+    }
+    
     console.log('brainrot: State cleanup completed');
+  }
+
+  preventYouTubeInterference(videoElement) {
+    // Prevent YouTube from pausing or manipulating our moved video
+    if (!videoElement) return;
+    
+    // Override pause/play methods temporarily to log and handle them
+    const originalPause = videoElement.pause;
+    const originalPlay = videoElement.play;
+    
+    videoElement.pause = function() {
+      console.log('YouTube tried to pause video, allowing but monitoring...');
+      return originalPause.call(this);
+    };
+    
+    videoElement.play = function() {
+      console.log('YouTube called play on video');
+      return originalPlay.call(this);
+    };
+    
+    // Prevent YouTube events from bubbling up
+    videoElement.addEventListener('pause', (e) => {
+      console.log('Video paused event, checking if intentional...');
+      // Don't stop propagation as it might break YouTube functionality
+    }, true);
+    
+    videoElement.addEventListener('play', (e) => {
+      console.log('Video play event detected');
+    }, true);
+    
+    // Monitor for YouTube trying to move the video back
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList' && this.isActive) {
+          // Check if our video was removed from our container
+          if (mutation.removedNodes) {
+            for (let node of mutation.removedNodes) {
+              if (node === videoElement) {
+                console.log('YouTube tried to move video back, preventing...');
+                // Re-append to our container
+                setTimeout(() => {
+                  if (this.youtubeMovedContainer && this.isActive) {
+                    this.youtubeMovedContainer.appendChild(videoElement);
+                  }
+                }, 100);
+              }
+            }
+          }
+        }
+      });
+    });
+    
+    if (this.youtubeMovedContainer) {
+      observer.observe(this.youtubeMovedContainer, { childList: true });
+      observer.observe(document.body, { childList: true, subtree: true });
+      
+      // Store observer for cleanup
+      this.mutationObserver = observer;
+    }
   }
 
   applyCustomLayout() {
@@ -475,6 +667,12 @@ class YouTubeBrainrotSplitter {
 
         // Style video and append to moved container
         this.movedOriginalVideoElement = nativeVideo;
+        
+        // Save original video state before moving
+        const wasPlaying = !nativeVideo.paused;
+        const currentTime = nativeVideo.currentTime;
+        const wasMuted = nativeVideo.muted;
+        
         nativeVideo.style.cssText += `
           width: 100% !important;
           height: 100% !important;
@@ -489,13 +687,53 @@ class YouTubeBrainrotSplitter {
         this.youtubeMovedContainer.appendChild(nativeVideo);
         document.body.appendChild(this.youtubeMovedContainer);
 
+        // Restore video state after moving
+        if (wasPlaying) {
+          // Small delay to ensure video is ready
+          setTimeout(() => {
+            try {
+              nativeVideo.currentTime = currentTime;
+              nativeVideo.muted = wasMuted;
+              nativeVideo.play().catch(e => console.log('Play after move failed:', e));
+            } catch (e) {
+              console.log('Error restoring video state:', e);
+            }
+          }, 100);
+        }
+
+        // Add continuous monitoring to prevent auto-deactivation
+        this.videoStateMonitor = setInterval(() => {
+          if (this.isActive && nativeVideo) {
+            // Check if video is still playing when it should be
+            if (wasPlaying && nativeVideo.paused) {
+              console.log('Video unexpectedly paused, resuming...');
+              nativeVideo.play().catch(e => console.log('Resume failed:', e));
+            }
+            
+            // Ensure video element stays in our container
+            if (nativeVideo.parentElement !== this.youtubeMovedContainer) {
+              console.log('Video element moved back by YouTube, re-moving...');
+              this.youtubeMovedContainer.appendChild(nativeVideo);
+              nativeVideo.currentTime = currentTime;
+              if (wasPlaying) {
+                nativeVideo.play().catch(e => console.log('Re-play failed:', e));
+              }
+            }
+          }
+        }, 1000); // Check every second
+
         // Create a placeholder in the original position to maintain YouTube's structure
         this.videoPlaceholder = document.createElement('div');
+        this.videoPlaceholder.className = 'brainrot-video-placeholder';
+        this.videoPlaceholder.setAttribute('data-brainrot-placeholder', 'true');
         this.videoPlaceholder.style.cssText = `
           width: 100% !important;
           height: 100% !important;
-          background: black !important;
+          background: transparent !important;
           display: block !important;
+          pointer-events: none !important;
+          position: relative !important;
+          z-index: 1 !important;
         `;
         
         if (this.movedVideoNextSibling) {
@@ -504,8 +742,25 @@ class YouTubeBrainrotSplitter {
           this.movedVideoOriginalParent.appendChild(this.videoPlaceholder);
         }
 
-        // Hide original container to prevent conflicts
-        try { playerContainer.style.visibility = 'hidden'; } catch (err) {}
+        // Hide original container to prevent conflicts but keep it functional
+        try { 
+          playerContainer.style.visibility = 'hidden';
+          playerContainer.style.pointerEvents = 'none';
+          
+          // Also hide any overlay elements that might cause black screen
+          const overlays = playerContainer.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top');
+          overlays.forEach(overlay => {
+            if (overlay) {
+              overlay.style.display = 'none !important';
+              overlay.style.visibility = 'hidden !important';
+              overlay.style.pointerEvents = 'none !important';
+              overlay.classList.add('brainrot-hidden-overlay');
+            }
+          });
+        } catch (err) {}
+
+        // Prevent YouTube from interfering with our moved video
+        this.preventYouTubeInterference(nativeVideo);
 
         this.movedViaStream = false; // We're moving the actual video, not using stream
         
@@ -633,6 +888,8 @@ class YouTubeBrainrotSplitter {
   }
 
   deactivateSplitScreen() {
+    console.log('brainrot: deactivateSplitScreen() called - Stack trace:', new Error().stack);
+    
     if (!this.isActive) {
       console.log('brainrot: Split screen is not active, nothing to deactivate');
       return;
@@ -652,6 +909,18 @@ class YouTubeBrainrotSplitter {
 
     // Remove split screen class from body
     document.body.classList.remove('brainrot-split-active');
+
+    // Clear video state monitor if exists
+    if (this.videoStateMonitor) {
+      clearInterval(this.videoStateMonitor);
+      this.videoStateMonitor = null;
+    }
+
+    // Clear mutation observer if exists
+    if (this.mutationObserver) {
+      this.mutationObserver.disconnect();
+      this.mutationObserver = null;
+    }
 
     // Remove brainrot container
     if (this.brainrotContainer) {
@@ -675,6 +944,22 @@ class YouTubeBrainrotSplitter {
     // Restore original YouTube player styles
     if (this.originalVideoContainer) {
       try {
+        // First restore visibility and pointer events
+        this.originalVideoContainer.style.visibility = 'visible';
+        this.originalVideoContainer.style.pointerEvents = 'auto';
+        
+        // Restore all overlay elements that we hid
+        const hiddenOverlays = this.originalVideoContainer.querySelectorAll('.brainrot-hidden-overlay');
+        hiddenOverlays.forEach(overlay => {
+          try {
+            overlay.style.removeProperty('display');
+            overlay.style.removeProperty('visibility');
+            overlay.style.removeProperty('pointer-events');
+            overlay.classList.remove('brainrot-hidden-overlay');
+          } catch (e) {}
+        });
+        
+        // Then restore original styles
         const orig = this.originalVideoContainer.__origStyle || '';
         if (orig) {
           this.originalVideoContainer.setAttribute('style', orig);
@@ -683,6 +968,7 @@ class YouTubeBrainrotSplitter {
         }
         delete this.originalVideoContainer.__origStyle;
       } catch (err) {
+        console.error('Error restoring original container:', err);
         this.originalVideoContainer.style.cssText = '';
       }
     }
@@ -692,6 +978,11 @@ class YouTubeBrainrotSplitter {
       try {
         const movedVideo = this.youtubeMovedContainer.querySelector('video');
         if (movedVideo && this.movedVideoOriginalParent) {
+          // Save current state before moving back
+          const wasPlaying = !movedVideo.paused;
+          const currentTime = movedVideo.currentTime;
+          const wasMuted = movedVideo.muted;
+          
           // Restore original video styles
           try {
             const orig = movedVideo.__origStyle || '';
@@ -708,6 +999,19 @@ class YouTubeBrainrotSplitter {
           } else {
             this.movedVideoOriginalParent.appendChild(movedVideo);
           }
+          
+          // Restore video state after moving back
+          setTimeout(() => {
+            try {
+              movedVideo.currentTime = currentTime;
+              movedVideo.muted = wasMuted;
+              if (wasPlaying) {
+                movedVideo.play().catch(e => console.log('Play after restore failed:', e));
+              }
+            } catch (e) {
+              console.log('Error restoring video state on deactivate:', e);
+            }
+          }, 100);
           
           // Remove placeholder if it exists
           if (this.videoPlaceholder) {
@@ -769,6 +1073,53 @@ class YouTubeBrainrotSplitter {
 
   // Detach hover handlers
   try { this.detachHoverControls(); } catch (e) {}
+
+    // Update split mode button appearance
+    if (this.splitModeBtn) {
+      this.splitModeBtn.style.backgroundColor = 'transparent';
+      this.splitModeBtn.style.opacity = '0.9';
+      this.splitModeBtn.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 4v16H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h4zm2 0h4v16h-4V4zm6 0h4c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2h-4V4z" opacity="0.9"/>
+        </svg>
+      `;
+    }
+
+    // Final cleanup - remove any stuck overlays or elements
+    setTimeout(() => {
+      try {
+        // Remove any remaining brainrot elements
+        const stuckElements = document.querySelectorAll('[class*="brainrot"], [data-brainrot-placeholder], .brainrot-video-placeholder');
+        stuckElements.forEach(el => {
+          try {
+            if (el !== this.splitModeBtn) { // Don't remove the split mode button
+              el.remove();
+            }
+          } catch (e) {}
+        });
+        
+        // Force clean any YouTube overlays that might be stuck
+        const stuckOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner');
+        stuckOverlays.forEach(overlay => {
+          try {
+            overlay.style.removeProperty('display');
+            overlay.style.removeProperty('visibility');
+            overlay.style.removeProperty('pointer-events');
+          } catch (e) {}
+        });
+        
+        // Ensure player container is fully visible
+        const player = document.querySelector('#movie_player');
+        if (player) {
+          player.style.removeProperty('visibility');
+          player.style.removeProperty('pointer-events');
+        }
+        
+        console.log('brainrot: Final cleanup completed');
+      } catch (e) {
+        console.error('Error in final cleanup:', e);
+      }
+    }, 500); // Delay to ensure everything is settled
 
     console.log('Split screen deactivated');
   }
@@ -1675,6 +2026,12 @@ class YouTubeBrainrotSplitter {
   }
 
   destroy() {
+    // Clean up intervals
+    if (this.playerCheckInterval) {
+      clearInterval(this.playerCheckInterval);
+      this.playerCheckInterval = null;
+    }
+    
     this.deactivateSplitScreen();
   }
 }
