@@ -351,6 +351,10 @@ class YouTubeBrainrotSplitter {
     if (this.isActive) return;
 
     console.log('Activating split screen mode');
+    
+    // Clean up any leftover state from previous activation
+    this.cleanupState();
+    
     this.isActive = true;
     this.preventAutoDeactivate = true; // Prevent auto-deactivation during setup
     this.userManuallyExited = false; // Reset manual exit flag
@@ -362,6 +366,43 @@ class YouTubeBrainrotSplitter {
     setTimeout(() => {
       this.preventAutoDeactivate = false;
     }, 500);
+  }
+
+  cleanupState() {
+    console.log('brainrot: Cleaning up state before activation');
+    
+    // Reset all container references
+    this.originalVideoContainer = null;
+    this.brainrotContainer = null;
+    this.brainrotVideo = null;
+    this.controlsOverlay = null;
+    this.youtubeMovedContainer = null;
+    this.movedVideoOriginalParent = null;
+    this.movedVideoNextSibling = null;
+    this.movedOriginalVideoElement = null;
+    this.videoPlaceholder = null;
+    
+    // Clear any leftover intervals
+    if (this.progressUpdateInterval) {
+      clearInterval(this.progressUpdateInterval);
+      this.progressUpdateInterval = null;
+    }
+    
+    // Remove any leftover classes from body
+    document.body.classList.remove('brainrot-split-active');
+    
+    // Clean up any leftover DOM elements
+    const existingContainer = document.querySelector('.brainrot-container');
+    if (existingContainer) {
+      existingContainer.remove();
+    }
+    
+    const existingMoved = document.querySelector('.youtube-moved-container');
+    if (existingMoved) {
+      existingMoved.remove();
+    }
+    
+    console.log('brainrot: State cleanup completed');
   }
 
   applyCustomLayout() {
