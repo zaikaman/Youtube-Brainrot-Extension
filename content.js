@@ -723,6 +723,9 @@ class YouTubeBrainrotSplitter {
       }
     } catch (e) {}
 
+  // Restore YouTube controls to original state
+  try { this._restoreYTControls(); } catch (e) {}
+
   // Detach hover handlers
   try { this.detachHoverControls(); } catch (e) {}
 
@@ -1072,6 +1075,50 @@ class YouTubeBrainrotSplitter {
       }
     } catch (e) {
       console.error('Error toggling YT controls:', e);
+    }
+  }
+
+  // Restore YouTube controls to their original state
+  _restoreYTControls() {
+    try {
+      console.log('brainrot: Restoring YouTube controls to original state');
+      
+      // Remove all our custom style overrides
+      const selectors = [
+        '.ytp-chrome-top', 
+        '.ytp-chrome-bottom', 
+        '.ytp-gradient-top', 
+        '.ytp-gradient-bottom',
+        '.ytp-progress-bar-container',
+        '.ytp-chrome-controls'
+      ];
+      
+      selectors.forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => {
+          try {
+            // Remove all our custom style properties
+            el.style.removeProperty('display');
+            el.style.removeProperty('opacity');
+            el.style.removeProperty('visibility');
+            el.style.removeProperty('pointer-events');
+            el.style.removeProperty('z-index');
+          } catch (e) {}
+        });
+      });
+
+      // Restore player original behavior
+      const player = document.querySelector('#movie_player');
+      if (player) {
+        try {
+          player.style.removeProperty('pointer-events');
+          player.classList.remove('ytp-chrome-controls-visible');
+          // Let YouTube handle autohide naturally
+        } catch (e) {}
+      }
+      
+      console.log('brainrot: YouTube controls restored');
+    } catch (e) {
+      console.error('Error restoring YT controls:', e);
     }
   }
 
