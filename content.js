@@ -43,14 +43,24 @@ class YouTubeBrainrotSplitter {
   // Handle Escape key to always restore layout when active (capture phase)
     this.escapeHandler = (e) => {
       console.log('brainrot: Key pressed:', e.key, 'isActive:', this.isActive);
-      if ((e.key === 'Escape' || e.key === 'Esc' || e.key === 'f' || e.key === 'F') && this.isActive) {
-        console.log('brainrot: Deactivating split screen via key:', e.key);
-        e.preventDefault();
-        e.stopPropagation();
-        // Try to exit any browser fullscreen as well
-        try { document.exitFullscreen(); } catch (err) {}
-        this.deactivateSplitScreen();
-        return false;
+      if ((e.key === 'Escape' || e.key === 'Esc' || e.key === 'f' || e.key === 'F')) {
+        // Check if we have split screen elements present instead of just isActive flag
+        const hasSplitElements = document.querySelector('.brainrot-container') || 
+                                 document.querySelector('.youtube-moved-container') ||
+                                 document.body.classList.contains('brainrot-split-active');
+        
+        if (this.isActive || hasSplitElements) {
+          console.log('brainrot: Deactivating split screen via key:', e.key);
+          e.preventDefault();
+          e.stopPropagation();
+          // Force deactivation
+          this.isActive = true; // Ensure isActive is true so deactivate will run
+          this.preventAutoDeactivate = false;
+          // Try to exit any browser fullscreen as well
+          try { document.exitFullscreen(); } catch (err) {}
+          this.deactivateSplitScreen();
+          return false;
+        }
       }
     };
     // Use capture to catch key even if YouTube intercepts it
@@ -59,12 +69,21 @@ class YouTubeBrainrotSplitter {
     
     // Also add keyup listener as backup
     this.escapeHandlerKeyup = (e) => {
-      if ((e.key === 'Escape' || e.key === 'Esc' || e.key === 'f' || e.key === 'F') && this.isActive) {
-        console.log('brainrot: Deactivating split screen via keyup:', e.key);
-        e.preventDefault();
-        e.stopPropagation();
-        this.deactivateSplitScreen();
-        return false;
+      if ((e.key === 'Escape' || e.key === 'Esc' || e.key === 'f' || e.key === 'F')) {
+        const hasSplitElements = document.querySelector('.brainrot-container') || 
+                                 document.querySelector('.youtube-moved-container') ||
+                                 document.body.classList.contains('brainrot-split-active');
+        
+        if (this.isActive || hasSplitElements) {
+          console.log('brainrot: Deactivating split screen via keyup:', e.key);
+          e.preventDefault();
+          e.stopPropagation();
+          // Force deactivation
+          this.isActive = true;
+          this.preventAutoDeactivate = false;
+          this.deactivateSplitScreen();
+          return false;
+        }
       }
     };
     document.addEventListener('keyup', this.escapeHandlerKeyup, true);
@@ -90,7 +109,7 @@ class YouTubeBrainrotSplitter {
 
     if (shouldActivate && !this.isActive) {
       this.activateSplitScreen();
-    } else if (!shouldActivate && this.isActive) {
+    } else if (!shouldActivate && this.isActive && !this.preventAutoDeactivate) {
       this.deactivateSplitScreen();
     }
 
@@ -110,6 +129,7 @@ class YouTubeBrainrotSplitter {
 
     console.log('Activating split screen mode');
     this.isActive = true;
+    this.preventAutoDeactivate = true; // Prevent auto-deactivation during setup
 
     // Exit fullscreen first, then manually resize
     if (document.fullscreenElement) {
@@ -119,6 +139,10 @@ class YouTubeBrainrotSplitter {
     // Wait a bit for fullscreen to exit, then apply our custom layout
     setTimeout(() => {
       this.applyCustomLayout();
+      // Allow auto-deactivation after layout is applied
+      setTimeout(() => {
+        this.preventAutoDeactivate = false;
+      }, 500);
     }, 100);
   }
 
@@ -296,7 +320,20 @@ class YouTubeBrainrotSplitter {
         console.log('brainrot: restoreBtn clicked');
         e.preventDefault();
         e.stopPropagation();
-        this.deactivateSplitScreen();
+        
+        // Force deactivation regardless of isActive state
+        const hasSplitElements = document.querySelector('.brainrot-container') || 
+                                 document.querySelector('.youtube-moved-container') ||
+                                 document.body.classList.contains('brainrot-split-active');
+        
+        if (this.isActive || hasSplitElements) {
+          console.log('brainrot: Force deactivating via restoreBtn');
+          this.isActive = true; // Ensure isActive is true so deactivate will run
+          this.preventAutoDeactivate = false;
+          this.deactivateSplitScreen();
+        } else {
+          console.log('brainrot: No split screen elements found to deactivate');
+        }
       });
       
       // Make sure the button is added after other elements
@@ -336,6 +373,7 @@ class YouTubeBrainrotSplitter {
 
     console.log('Deactivating split screen mode');
     this.isActive = false;
+    this.preventAutoDeactivate = false; // Reset flag
 
     // Remove split screen class from body
     document.body.classList.remove('brainrot-split-active');
