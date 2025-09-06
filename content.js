@@ -15,11 +15,26 @@ class YouTubeBrainrotSplitter {
       'brainrot-video.mp4' // Local video file in extension folder
     ];
     
+    // Detect current domain
+    this.currentDomain = window.location.hostname;
+    this.isYouTube = this.currentDomain.includes('youtube.com');
+    this.isFullstack = this.currentDomain.includes('fullstack.edu.vn');
+    
+    console.log(`brainrot: Detected domain: ${this.currentDomain}, isYouTube: ${this.isYouTube}, isFullstack: ${this.isFullstack}`);
+    
     this.init();
   }
 
   init() {
-    // Listen for fullscreen changes
+    if (this.isYouTube) {
+      this.initYouTube();
+    } else if (this.isFullstack) {
+      this.initFullstack();
+    }
+  }
+
+  initYouTube() {
+    // YouTube specific initialization - theater mode based
     // Listen for theater mode changes instead of fullscreen changes
     document.addEventListener('fullscreenchange', () => this.handleTheaterModeChange());
     document.addEventListener('webkitfullscreenchange', () => this.handleTheaterModeChange());
@@ -83,7 +98,26 @@ class YouTubeBrainrotSplitter {
     // Add listener for theater mode button clicks
     this.setupTheaterModeListener();
 
-  // Handle Escape key to always restore layout when active (capture phase)
+    // Setup escape handlers for YouTube
+    this.setupEscapeHandlers();
+  }
+
+  initFullstack() {
+    // Fullstack.edu.vn specific initialization - play video based
+    console.log('brainrot: Initializing for Fullstack.edu.vn');
+    
+    // Setup escape handlers for Fullstack
+    this.setupEscapeHandlers();
+    
+    // Setup video play detection
+    this.setupFullstackVideoListener();
+    
+    // Initial check for existing videos
+    setTimeout(() => this.checkForFullstackVideos(), 1000);
+  }
+
+  setupEscapeHandlers() {
+    // Handle Escape key to always restore layout when active (capture phase)
     this.escapeHandler = (e) => {
       console.log('brainrot: Key pressed:', e.key, 'isActive:', this.isActive);
       if ((e.key === 'Escape' || e.key === 'Esc' || e.key === 'f' || e.key === 'F')) {
@@ -131,6 +165,43 @@ class YouTubeBrainrotSplitter {
       }
     };
     document.addEventListener('keyup', this.escapeHandlerKeyup, true);
+  }
+
+  setupFullstackVideoListener() {
+    // Listen for video play events on Fullstack.edu.vn
+    const handleVideoPlay = (e) => {
+      if (e.target.tagName === 'VIDEO' && !this.isActive) {
+        console.log('brainrot: Video play detected on Fullstack.edu.vn');
+        this.activateSplitScreen();
+      }
+    };
+
+    // Add event listener for video play
+    document.addEventListener('play', handleVideoPlay, true);
+    
+    // Also use MutationObserver to catch dynamically added videos
+    const videoObserver = new MutationObserver(() => {
+      this.checkForFullstackVideos();
+    });
+    
+    videoObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  checkForFullstackVideos() {
+    // Check for existing playing videos
+    const videos = document.querySelectorAll('video');
+    videos.forEach(video => {
+      if (!video.paused && !video.hasAttribute('data-brainrot-listener')) {
+        video.setAttribute('data-brainrot-listener', 'true');
+        console.log('brainrot: Found playing video on Fullstack.edu.vn');
+        if (!this.isActive) {
+          this.activateSplitScreen();
+        }
+      }
+    });
   }
 
   setupTheaterModeListener() {
@@ -544,28 +615,11 @@ class YouTubeBrainrotSplitter {
     // Restore hidden elements
     this.restorePageElements();
 
-  // For theater mode, we should exit theater mode instead of dealing with fullscreen
-    try {
-      const theaterBtn = document.querySelector('#movie_player .ytp-size-button');
-      if (theaterBtn) {
-        // Check if we're in theater mode and exit it
-        const ytdApp = document.querySelector('ytd-app');
-        const watchFlexy = document.querySelector('ytd-watch-flexy');
-        const isCurrentlyTheater = (
-          (ytdApp && ytdApp.hasAttribute('theater')) ||
-          (watchFlexy && watchFlexy.hasAttribute('theater'))
-        );
-        if (isCurrentlyTheater) {
-          // Set flag before clicking to prevent re-activation
-          this.userManuallyExited = true;
-          try { 
-            theaterBtn.click(); 
-            console.log('brainrot: Exited theater mode via button click');
-          } catch (e) {}
-        }
-      }
-    } catch (e) {
-      console.log('brainrot: Could not exit theater mode:', e);
+    // Domain-specific exit behavior
+    if (this.isYouTube) {
+      this.exitYouTubeMode();
+    } else if (this.isFullstack) {
+      this.exitFullstackMode();
     }
 
   // Keep escape key handler for the lifetime of the content script so it works on re-activate
@@ -600,6 +654,46 @@ class YouTubeBrainrotSplitter {
   try { this.detachHoverControls(); } catch (e) {}
 
     console.log('Split screen deactivated');
+  }
+
+  exitYouTubeMode() {
+    // For YouTube - exit theater mode if currently in it
+    try {
+      const theaterBtn = document.querySelector('#movie_player .ytp-size-button');
+      if (theaterBtn) {
+        // Check if we're in theater mode and exit it
+        const ytdApp = document.querySelector('ytd-app');
+        const watchFlexy = document.querySelector('ytd-watch-flexy');
+        const isCurrentlyTheater = (
+          (ytdApp && ytdApp.hasAttribute('theater')) ||
+          (watchFlexy && watchFlexy.hasAttribute('theater'))
+        );
+        if (isCurrentlyTheater) {
+          // Set flag before clicking to prevent re-activation
+          this.userManuallyExited = true;
+          try { 
+            theaterBtn.click(); 
+            console.log('brainrot: Exited theater mode via button click');
+          } catch (e) {}
+        }
+      }
+    } catch (e) {
+      console.log('brainrot: Could not exit theater mode:', e);
+    }
+  }
+
+  exitFullstackMode() {
+    // For Fullstack.edu.vn - just pause videos if needed
+    try {
+      const videos = document.querySelectorAll('video');
+      videos.forEach(video => {
+        // We don't pause the video, just let it continue playing
+        // The user can manually pause if they want
+        console.log('brainrot: Exited split mode on Fullstack.edu.vn');
+      });
+    } catch (e) {
+      console.log('brainrot: Error in exitFullstackMode:', e);
+    }
   }
 
   createBrainrotContainer() {

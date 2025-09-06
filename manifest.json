@@ -11,7 +11,8 @@
   
   "host_permissions": [
     "*://www.youtube.com/*",
-    "*://youtube.com/*"
+    "*://youtube.com/*",
+    "*://fullstack.edu.vn/*"
   ],
   
   "background": {
@@ -20,7 +21,7 @@
   
   "content_scripts": [
     {
-      "matches": ["*://www.youtube.com/*", "*://youtube.com/*"],
+      "matches": ["*://www.youtube.com/*", "*://youtube.com/*", "*://fullstack.edu.vn/*"],
       "js": ["content.js"],
       "css": ["styles.css"],
       "run_at": "document_end"
@@ -30,7 +31,7 @@
   "web_accessible_resources": [
     {
       "resources": ["brainrot-videos.json", "brainrot-video.mp4"],
-      "matches": ["*://www.youtube.com/*", "*://youtube.com/*"]
+      "matches": ["*://www.youtube.com/*", "*://youtube.com/*", "*://fullstack.edu.vn/*"]
     }
   ]
 }
