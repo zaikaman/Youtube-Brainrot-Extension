@@ -170,14 +170,33 @@ class YouTubeBrainrotSplitter {
   setupFullstackVideoListener() {
     // Listen for video play events on Fullstack.edu.vn
     const handleVideoPlay = (e) => {
+      console.log('brainrot: Video play event detected:', e.target);
       if (e.target.tagName === 'VIDEO' && !this.isActive) {
-        console.log('brainrot: Video play detected on Fullstack.edu.vn');
+        console.log('brainrot: Video play detected on Fullstack.edu.vn - activating split screen');
         this.activateSplitScreen();
+      } else {
+        console.log('brainrot: Video play event but conditions not met. tagName:', e.target.tagName, 'isActive:', this.isActive);
       }
     };
 
+    console.log('brainrot: Setting up video listeners for Fullstack.edu.vn');
+    
     // Add event listener for video play
     document.addEventListener('play', handleVideoPlay, true);
+    
+    // Also listen for click events on video elements
+    document.addEventListener('click', (e) => {
+      if (e.target.tagName === 'VIDEO' || e.target.closest('video')) {
+        console.log('brainrot: Video click detected:', e.target);
+        setTimeout(() => {
+          const video = e.target.tagName === 'VIDEO' ? e.target : e.target.closest('video');
+          if (video && !video.paused && !this.isActive) {
+            console.log('brainrot: Video is playing after click - activating split screen');
+            this.activateSplitScreen();
+          }
+        }, 100);
+      }
+    }, true);
     
     // Also use MutationObserver to catch dynamically added videos
     const videoObserver = new MutationObserver(() => {
@@ -192,8 +211,19 @@ class YouTubeBrainrotSplitter {
 
   checkForFullstackVideos() {
     // Check for existing playing videos
+    console.log('brainrot: Checking for Fullstack videos...');
     const videos = document.querySelectorAll('video');
-    videos.forEach(video => {
+    console.log('brainrot: Found', videos.length, 'video elements');
+    
+    videos.forEach((video, index) => {
+      console.log(`brainrot: Video ${index}:`, {
+        paused: video.paused,
+        currentTime: video.currentTime,
+        duration: video.duration,
+        src: video.src,
+        hasListener: video.hasAttribute('data-brainrot-listener')
+      });
+      
       if (!video.paused && !video.hasAttribute('data-brainrot-listener')) {
         video.setAttribute('data-brainrot-listener', 'true');
         console.log('brainrot: Found playing video on Fullstack.edu.vn');
