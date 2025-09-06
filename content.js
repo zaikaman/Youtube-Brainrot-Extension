@@ -564,56 +564,75 @@ class YouTubeBrainrotSplitter {
     // Remove previous handlers if any
     this.detachHoverControls();
 
-  this._hoverEnter = () => {
+    this._hoverEnter = () => {
       try {
         console.log('brainrot: hoverEnter triggered, movedViaStream=', this.movedViaStream);
-        // If we used stream clone, reveal and raise the entire player container so its overlays get input
+        
+        // Show YouTube controls for both stream clone and moved video cases
+        this._toggleYTControls(true);
+        
         if (this.movedViaStream) {
-          // Hide the clone visual to avoid double view
-          try { if (this.leftClone) this.leftClone.style.visibility = 'hidden'; } catch (e) {}
+          // Show the original video element and make it interactive
+          try { 
+            if (this.movedOriginalVideoElement) {
+              this.movedOriginalVideoElement.style.setProperty('opacity', '1', 'important'); 
+              this.movedOriginalVideoElement.style.setProperty('pointer-events', 'auto', 'important');
+              console.log('brainrot: native video visible and interactive');
+            }
+          } catch (e) {}
 
-          // Raise the original YouTube player container above the clone and allow pointer events
+          // Raise the original YouTube player container above everything
           try {
             if (this.originalVideoContainer) {
               const origStyle = this.originalVideoContainer.getAttribute('style') || '';
-              // keep a temp copy to revert hover-only changes
               this._origContainerHoverStyle = origStyle;
-              this.originalVideoContainer.style.cssText = `${origStyle}; z-index: 2147483680 !important; pointer-events: auto !important;`;
+              this.originalVideoContainer.style.cssText = `${origStyle}; z-index: 2147483680 !important; pointer-events: auto !important; visibility: visible !important;`;
+              console.log('brainrot: originalVideoContainer raised and interactive');
             }
           } catch (e) {}
 
-          // Let YouTube UI be visible while hovering
-          try { this._toggleYTControls(true); } catch (e) {}
-
-          // Allow clicks to reach the underlying YouTube player by disabling pointer events on the clone container
+          // Lower the clone container z-index but keep it visible for video playback
           try {
             if (this.youtubeMovedContainer) {
-              // lower clone z-index to be under the original player
               this._origCloneZ = this.youtubeMovedContainer.style.zIndex || '';
-              this.youtubeMovedContainer.style.setProperty('z-index', '2147483640', 'important');
+              this.youtubeMovedContainer.style.setProperty('z-index', '2147483650', 'important');
               this.youtubeMovedContainer.style.pointerEvents = 'none';
-              console.log('brainrot: youtubeMovedContainer pointer-events none, z-index lowered');
             }
           } catch (e) {}
-          // Also ensure the native video element itself accepts pointer events
-          try { if (this.movedOriginalVideoElement) { this.movedOriginalVideoElement.style.setProperty('pointer-events', 'auto', 'important'); console.log('brainrot: native video pointer-events auto'); } } catch (e) {}
-          // Start tracking mouse to restore when leaving the left area
-          try { this._startLeftHoverTracking(); } catch (e) {}
+
+          // Hide the clone video to show original underneath
+          try { 
+            if (this.leftClone) {
+              this.leftClone.style.setProperty('opacity', '0.1', 'important');
+              this.leftClone.style.pointerEvents = 'none';
+            }
+          } catch (e) {}
         }
 
         // If we moved native video, enable controls on it
         if (!this.movedViaStream && this.youtubeMovedContainer) {
           const mv = this.youtubeMovedContainer.querySelector('video');
-          try { if (mv) mv.controls = true; } catch (e) {}
+          try { 
+            if (mv) {
+              mv.controls = true;
+              mv.style.setProperty('pointer-events', 'auto', 'important');
+            }
+          } catch (e) {}
         }
-      } catch (err) {}
-  };
+      } catch (err) {
+        console.error('Error in hoverEnter:', err);
+      }
+    };
 
-  this._hoverLeave = () => {
+    this._hoverLeave = () => {
       try {
         console.log('brainrot: hoverLeave triggered');
+        
+        // Hide YouTube UI to keep the layout clean
+        this._toggleYTControls(false);
+        
         if (this.movedViaStream) {
-          // Lower the player container back and disable its pointer events
+          // Restore original video container style
           try {
             if (this.originalVideoContainer) {
               const base = this._origContainerHoverStyle || this.originalVideoContainer.getAttribute('style') || '';
@@ -621,33 +640,48 @@ class YouTubeBrainrotSplitter {
             }
           } catch (e) {}
           this._origContainerHoverStyle = null;
-          // Show back the clone
-          try { if (this.leftClone) this.leftClone.style.visibility = 'visible'; } catch (e) {}
-          // Hide YouTube UI again to keep the layout clean
-          try { this._toggleYTControls(false); } catch (e) {}
+          
+          // Hide the original video element again
+          try { 
+            if (this.movedOriginalVideoElement) {
+              this.movedOriginalVideoElement.style.setProperty('pointer-events', 'none', 'important'); 
+              this.movedOriginalVideoElement.style.setProperty('opacity', '0', 'important');
+            }
+          } catch (e) {}
+          
+          // Show back the clone video and restore its z-index
+          try { 
+            if (this.leftClone) {
+              this.leftClone.style.setProperty('opacity', '1', 'important');
+              this.leftClone.style.pointerEvents = 'auto';
+            }
+          } catch (e) {}
+          
           // Re-enable pointer events on the clone container and restore z-index
           try {
             if (this.youtubeMovedContainer) {
-              try { this.youtubeMovedContainer.style.setProperty('z-index', this._origCloneZ || '2147483646', 'important'); } catch (e) { this.youtubeMovedContainer.style.zIndex = this._origCloneZ || '2147483646'; }
+              this.youtubeMovedContainer.style.setProperty('z-index', this._origCloneZ || '2147483646', 'important');
               this.youtubeMovedContainer.style.pointerEvents = 'auto';
             }
           } catch (e) {}
-          // Re-hide native video and disable pointer events on it so it doesn't intercept when not hovering
-          try { if (this.movedOriginalVideoElement) { this.movedOriginalVideoElement.style.setProperty('pointer-events', 'none', 'important'); this.movedOriginalVideoElement.style.setProperty('opacity', '0', 'important'); console.log('brainrot: native video pointer-events none, opacity 0'); } } catch (e) {}
-          // Stop tracking
-          try { this._stopLeftHoverTracking(); } catch (e) {}
         }
 
         if (!this.movedViaStream && this.youtubeMovedContainer) {
           const mv = this.youtubeMovedContainer.querySelector('video');
-          try { if (mv) mv.controls = false; } catch (e) {}
+          try { 
+            if (mv) {
+              mv.controls = false;
+              mv.style.pointerEvents = 'none';
+            }
+          } catch (e) {}
         }
-      } catch (err) {}
-  };
+      } catch (err) {
+        console.error('Error in hoverLeave:', err);
+      }
+    };
 
-  // We rely on the global mouse watcher to detect entering/leaving the left split area.
-  // This avoids duplicate enter/leave events from element listeners and unstable toggling.
-  this._hoverTarget = null;
+    // We rely on the global mouse watcher to detect entering/leaving the left split area.
+    this._hoverTarget = null;
   }
 
   detachHoverControls() {
@@ -680,11 +714,14 @@ class YouTubeBrainrotSplitter {
   _setupGlobalHoverWatcher() {
     // If already present, skip
     if (this._globalWatcher) return;
+    
     this._globalWatcher = (e) => {
       try {
         const leftWidth = Math.round(window.innerWidth * 2 / 3);
+        const isInLeftArea = e.clientX <= leftWidth && e.clientY >= 0 && e.clientY <= window.innerHeight;
+        
         // If cursor is within left split area, trigger hoverEnter; otherwise trigger hoverLeave
-        if (e.clientX <= leftWidth) {
+        if (isInLeftArea) {
           if (!this._globalInsideLeft) {
             this._globalInsideLeft = true;
             console.log('brainrot: globalWatcher enter left');
@@ -697,13 +734,25 @@ class YouTubeBrainrotSplitter {
             this._hoverLeave && this._hoverLeave();
           }
         }
-      } catch (err) {}
+      } catch (err) {
+        console.error('Error in global hover watcher:', err);
+      }
     };
-    try { document.addEventListener('mousemove', this._globalWatcher, true); } catch (e) {}
+    
+    // Use both mousemove and mouseover for better detection
+    try { 
+      document.addEventListener('mousemove', this._globalWatcher, true); 
+      document.addEventListener('mouseover', this._globalWatcher, true);
+    } catch (e) {}
   }
 
   _removeGlobalHoverWatcher() {
-    try { if (this._globalWatcher) document.removeEventListener('mousemove', this._globalWatcher, true); } catch (e) {}
+    try { 
+      if (this._globalWatcher) {
+        document.removeEventListener('mousemove', this._globalWatcher, true);
+        document.removeEventListener('mouseover', this._globalWatcher, true);
+      }
+    } catch (e) {}
     this._globalWatcher = null;
     this._globalInsideLeft = false;
   }
@@ -716,15 +765,45 @@ class YouTubeBrainrotSplitter {
   // Show or hide YouTube's own controls while hovering the left video
   _toggleYTControls(show) {
     try {
-      const selectors = ['.ytp-chrome-top', '.ytp-chrome-bottom', '.ytp-gradient-top', '.ytp-gradient-bottom'];
+      const selectors = [
+        '.ytp-chrome-top', 
+        '.ytp-chrome-bottom', 
+        '.ytp-gradient-top', 
+        '.ytp-gradient-bottom',
+        '.ytp-progress-bar-container',
+        '.ytp-chrome-controls'
+      ];
+      
       selectors.forEach(sel => {
         document.querySelectorAll(sel).forEach(el => {
           // Use !important to override stylesheet rules that hide these bars
           const value = show ? 'block' : 'none';
-          try { el.style.setProperty('display', value, 'important'); } catch (_) { el.style.display = value; }
+          try { 
+            el.style.setProperty('display', value, 'important'); 
+            if (show) {
+              el.style.setProperty('opacity', '1', 'important');
+              el.style.setProperty('visibility', 'visible', 'important');
+              el.style.setProperty('pointer-events', 'auto', 'important');
+            }
+          } catch (_) { 
+            el.style.display = value; 
+          }
         });
       });
-    } catch (e) {}
+
+      // Also ensure the player itself can receive hover events
+      const player = document.querySelector('#movie_player');
+      if (player && show) {
+        player.style.setProperty('pointer-events', 'auto', 'important');
+        // Trigger YouTube's own hover state
+        player.classList.add('ytp-autohide');
+        setTimeout(() => {
+          player.classList.remove('ytp-autohide');
+        }, 100);
+      }
+    } catch (e) {
+      console.error('Error toggling YT controls:', e);
+    }
   }
 
   // Fallback helper: stop clone (if any) and move native video into the left container

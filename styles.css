@@ -52,12 +52,30 @@ body.brainrot-split-active {
   object-fit: cover !important; /* Fill entire space, may crop to fit aspect ratio */
 }
 
-/* Hide YouTube UI elements when in split mode */
+/* Hide YouTube UI elements when in split mode, but show them on hover */
 body.brainrot-split-active .ytp-chrome-top,
 body.brainrot-split-active .ytp-chrome-bottom,
 body.brainrot-split-active .ytp-gradient-top,
 body.brainrot-split-active .ytp-gradient-bottom {
   display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.2s ease !important;
+}
+
+/* Show controls when hovering over the left video area */
+body.brainrot-split-active .youtube-moved-container:hover ~ * .ytp-chrome-top,
+body.brainrot-split-active .youtube-moved-container:hover ~ * .ytp-chrome-bottom,
+body.brainrot-split-active .youtube-moved-container:hover ~ * .ytp-gradient-top,
+body.brainrot-split-active .youtube-moved-container:hover ~ * .ytp-gradient-bottom,
+body.brainrot-split-active #movie_player:hover .ytp-chrome-top,
+body.brainrot-split-active #movie_player:hover .ytp-chrome-bottom,
+body.brainrot-split-active #movie_player:hover .ytp-gradient-top,
+body.brainrot-split-active #movie_player:hover .ytp-gradient-bottom {
+  display: block !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  z-index: 2147483680 !important;
 }
 
 /* Ensure YouTube video fills its container properly */
@@ -126,4 +144,34 @@ body.brainrot-split-active video {
 .brainrot-video {
   pointer-events: auto !important;
   opacity: 1 !important;
+}
+
+/* Ensure YouTube player can receive mouse events when needed */
+body.brainrot-split-active #movie_player {
+  pointer-events: auto !important;
+}
+
+/* Make sure video controls are interactive when visible */
+body.brainrot-split-active .ytp-chrome-top *,
+body.brainrot-split-active .ytp-chrome-bottom * {
+  pointer-events: auto !important;
+}
+
+/* Ensure progress bar and volume controls work */
+body.brainrot-split-active .ytp-progress-bar-container,
+body.brainrot-split-active .ytp-volume-slider,
+body.brainrot-split-active .ytp-chrome-controls {
+  pointer-events: auto !important;
+}
+
+/* Make sure the video element itself can receive events when controls are shown */
+body.brainrot-split-active video {
+  pointer-events: auto !important;
+}
+
+/* Override any conflicting styles that might hide controls */
+body.brainrot-split-active .ytp-autohide .ytp-chrome-bottom,
+body.brainrot-split-active .ytp-autohide .ytp-chrome-top {
+  opacity: 1 !important;
+  display: block !important;
 }
