@@ -53,11 +53,11 @@ class YouTubeBrainrotSplitter {
           console.log('brainrot: Deactivating split screen via key:', e.key);
           e.preventDefault();
           e.stopPropagation();
-          // Force deactivation
+          // Force deactivation and mark as manually exited
           this.isActive = true; // Ensure isActive is true so deactivate will run
           this.preventAutoDeactivate = false;
-          // Try to exit any browser fullscreen as well
-          try { document.exitFullscreen(); } catch (err) {}
+          this.userManuallyExited = true; // Prevent re-activation
+          // Don't exit fullscreen here as it will trigger re-activation
           this.deactivateSplitScreen();
           return false;
         }
@@ -78,9 +78,10 @@ class YouTubeBrainrotSplitter {
           console.log('brainrot: Deactivating split screen via keyup:', e.key);
           e.preventDefault();
           e.stopPropagation();
-          // Force deactivation
+          // Force deactivation and mark as manually exited
           this.isActive = true;
           this.preventAutoDeactivate = false;
+          this.userManuallyExited = true; // Prevent re-activation
           this.deactivateSplitScreen();
           return false;
         }
@@ -107,7 +108,7 @@ class YouTubeBrainrotSplitter {
   // Activate when browser or YouTube tries to go fullscreen, but we'll override it
   const shouldActivate = isFullscreen || isYouTubeFullscreen;
 
-    if (shouldActivate && !this.isActive) {
+    if (shouldActivate && !this.isActive && !this.userManuallyExited) {
       this.activateSplitScreen();
     } else if (!shouldActivate && this.isActive && !this.preventAutoDeactivate) {
       this.deactivateSplitScreen();
@@ -130,6 +131,7 @@ class YouTubeBrainrotSplitter {
     console.log('Activating split screen mode');
     this.isActive = true;
     this.preventAutoDeactivate = true; // Prevent auto-deactivation during setup
+    this.userManuallyExited = false; // Reset manual exit flag
 
     // Exit fullscreen first, then manually resize
     if (document.fullscreenElement) {
@@ -330,6 +332,7 @@ class YouTubeBrainrotSplitter {
           console.log('brainrot: Force deactivating via restoreBtn');
           this.isActive = true; // Ensure isActive is true so deactivate will run
           this.preventAutoDeactivate = false;
+          this.userManuallyExited = true; // Prevent re-activation
           this.deactivateSplitScreen();
         } else {
           console.log('brainrot: No split screen elements found to deactivate');
@@ -374,6 +377,14 @@ class YouTubeBrainrotSplitter {
     console.log('Deactivating split screen mode');
     this.isActive = false;
     this.preventAutoDeactivate = false; // Reset flag
+    
+    // Reset manual exit flag after some time to allow re-activation
+    if (this.userManuallyExited) {
+      setTimeout(() => {
+        console.log('brainrot: Resetting userManuallyExited flag');
+        this.userManuallyExited = false;
+      }, 3000); // 3 seconds
+    }
 
     // Remove split screen class from body
     document.body.classList.remove('brainrot-split-active');
