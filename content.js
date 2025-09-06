@@ -20,16 +20,31 @@ class YouTubeBrainrotSplitter {
 
   init() {
     // Listen for fullscreen changes
-    document.addEventListener('fullscreenchange', () => this.handleFullscreenChange());
-    document.addEventListener('webkitfullscreenchange', () => this.handleFullscreenChange());
-    document.addEventListener('mozfullscreenchange', () => this.handleFullscreenChange());
-    document.addEventListener('msfullscreenchange', () => this.handleFullscreenChange());
+    // Listen for theater mode changes instead of fullscreen changes
+    document.addEventListener('fullscreenchange', () => this.handleTheaterModeChange());
+    document.addEventListener('webkitfullscreenchange', () => this.handleTheaterModeChange());
+    document.addEventListener('mozfullscreenchange', () => this.handleTheaterModeChange());
+    document.addEventListener('msfullscreenchange', () => this.handleTheaterModeChange());
+    
+    // Also listen for DOM changes that might indicate theater mode
+    const theaterObserver = new MutationObserver(() => {
+      this.handleTheaterModeChange();
+    });
+    
+    // Observe changes to the movie player element
+    const moviePlayer = document.querySelector('#movie_player');
+    if (moviePlayer) {
+      theaterObserver.observe(moviePlayer, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+    }
 
     // Listen for messages from background script
     try {
       chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.action === 'checkFullscreen') {
-          this.handleFullscreenChange();
+          this.handleTheaterModeChange();
         }
       });
     } catch (error) {
@@ -38,7 +53,10 @@ class YouTubeBrainrotSplitter {
     }
 
     // Initial check
-    setTimeout(() => this.handleFullscreenChange(), 1000);
+    setTimeout(() => this.handleTheaterModeChange(), 1000);
+
+    // Add listener for theater mode button clicks
+    this.setupTheaterModeListener();
 
   // Handle Escape key to always restore layout when active (capture phase)
     this.escapeHandler = (e) => {
@@ -90,23 +108,48 @@ class YouTubeBrainrotSplitter {
     document.addEventListener('keyup', this.escapeHandlerKeyup, true);
   }
 
-  handleFullscreenChange() {
-    const isFullscreen = !!(
-      document.fullscreenElement ||
-      document.webkitFullscreenElement ||
-      document.mozFullScreenElement ||
-      document.msFullscreenElement
-    );
+  setupTheaterModeListener() {
+    // Function to check and listen for theater mode button
+    const checkForTheaterButton = () => {
+      const theaterButton = document.querySelector('.ytp-size-button');
+      if (theaterButton && !theaterButton.hasAttribute('data-brainrot-listener')) {
+        theaterButton.setAttribute('data-brainrot-listener', 'true');
+        theaterButton.addEventListener('click', () => {
+          // Use a small delay to let YouTube update the DOM
+          setTimeout(() => this.handleTheaterModeChange(), 100);
+        });
+      }
+    };
 
-    // Also check if YouTube player is in theater mode or fullscreen
+    // Check immediately and set up observer for dynamic content
+    checkForTheaterButton();
+    
+    // Use MutationObserver to catch dynamically added elements
+    const observer = new MutationObserver(() => {
+      checkForTheaterButton();
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    // Also check periodically as backup
+    this.theaterCheckInterval = setInterval(checkForTheaterButton, 2000);
+  }
+
+  handleTheaterModeChange() {
+    // Check if YouTube player is in theater mode (not fullscreen)
     const playerContainer = document.querySelector('#movie_player');
-    const isYouTubeFullscreen = playerContainer && (
-      playerContainer.classList.contains('ytp-fullscreen') ||
-      document.querySelector('.ytp-fullscreen')
+    const isTheaterMode = playerContainer && (
+      playerContainer.classList.contains('ytp-size-large') ||
+      document.querySelector('.ytp-size-large') ||
+      document.body.classList.contains('theater-mode') ||
+      document.querySelector('#page.watch-wide')
     );
 
-  // Activate when browser or YouTube tries to go fullscreen, but we'll override it
-  const shouldActivate = isFullscreen || isYouTubeFullscreen;
+  // Activate when YouTube is in theater mode, not fullscreen
+  const shouldActivate = isTheaterMode;
 
     if (shouldActivate && !this.isActive && !this.userManuallyExited) {
       this.activateSplitScreen();
@@ -133,19 +176,13 @@ class YouTubeBrainrotSplitter {
     this.preventAutoDeactivate = true; // Prevent auto-deactivation during setup
     this.userManuallyExited = false; // Reset manual exit flag
 
-    // Exit fullscreen first, then manually resize
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    }
-
-    // Wait a bit for fullscreen to exit, then apply our custom layout
+    // No need to exit fullscreen since we're working with theater mode
+    // Apply our custom layout directly
+    this.applyCustomLayout();
+    // Allow auto-deactivation after layout is applied
     setTimeout(() => {
-      this.applyCustomLayout();
-      // Allow auto-deactivation after layout is applied
-      setTimeout(() => {
-        this.preventAutoDeactivate = false;
-      }, 500);
-    }, 100);
+      this.preventAutoDeactivate = false;
+    }, 500);
   }
 
   applyCustomLayout() {
