@@ -184,8 +184,21 @@ class YouTubeBrainrotSplitter {
     // Add event listener for video play
     document.addEventListener('play', handleVideoPlay, true);
     
-    // Also listen for click events on video elements
+    // Also listen for click events on video elements and YouTube iframes
     document.addEventListener('click', (e) => {
+      console.log('brainrot: Click detected on:', e.target);
+      
+      // Check if clicked on YouTube iframe or its container
+      const youtubeIframe = e.target.closest('iframe[src*="youtube.com"], iframe[src*="youtu.be"]') ||
+                           document.querySelector('iframe[src*="youtube.com"], iframe[src*="youtu.be"]');
+      
+      if (youtubeIframe && !this.isActive) {
+        console.log('brainrot: YouTube iframe detected on Fullstack.edu.vn - activating split screen');
+        setTimeout(() => this.activateSplitScreen(), 500);
+        return;
+      }
+      
+      // Original video logic
       if (e.target.tagName === 'VIDEO' || e.target.closest('video')) {
         console.log('brainrot: Video click detected:', e.target);
         setTimeout(() => {
@@ -198,7 +211,7 @@ class YouTubeBrainrotSplitter {
       }
     }, true);
     
-    // Also use MutationObserver to catch dynamically added videos
+    // Also use MutationObserver to catch dynamically added videos and iframes
     const videoObserver = new MutationObserver(() => {
       this.checkForFullstackVideos();
     });
@@ -214,6 +227,16 @@ class YouTubeBrainrotSplitter {
     console.log('brainrot: Checking for Fullstack videos...');
     const videos = document.querySelectorAll('video');
     console.log('brainrot: Found', videos.length, 'video elements');
+    
+    // Also check for YouTube iframes (common on Fullstack.edu.vn)
+    const youtubeIframes = document.querySelectorAll('iframe[src*="youtube.com"], iframe[src*="youtu.be"]');
+    console.log('brainrot: Found', youtubeIframes.length, 'YouTube iframes');
+    
+    if (youtubeIframes.length > 0 && !this.isActive) {
+      console.log('brainrot: Found YouTube iframe on Fullstack.edu.vn - activating split screen');
+      this.activateSplitScreen();
+      return;
+    }
     
     videos.forEach((video, index) => {
       console.log(`brainrot: Video ${index}:`, {
