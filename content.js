@@ -241,8 +241,22 @@ class YouTubeBrainrotSplitter {
 
     // Add a small restore button so user can exit split mode manually
     try {
+      // Remove any existing restore button first
+      if (this.restoreBtn) {
+        try {
+          this.restoreBtn.remove();
+        } catch (e) {}
+        this.restoreBtn = null;
+      }
+
       this.restoreBtn = document.createElement('button');
+      if (!this.restoreBtn) {
+        console.error('brainrot: Failed to create button element');
+        return;
+      }
+
       this.restoreBtn.textContent = '✕ Exit Split';
+      this.restoreBtn.setAttribute('type', 'button');
       this.restoreBtn.style.cssText = `
         position: fixed !important;
         top: 10px !important;
@@ -264,13 +278,17 @@ class YouTubeBrainrotSplitter {
       
       // Add hover effects
       this.restoreBtn.addEventListener('mouseenter', () => {
-        this.restoreBtn.style.background = 'rgba(255,0,0,0.8)';
-        this.restoreBtn.style.transform = 'scale(1.05)';
+        if (this.restoreBtn) {
+          this.restoreBtn.style.background = 'rgba(255,0,0,0.8)';
+          this.restoreBtn.style.transform = 'scale(1.05)';
+        }
       });
       
       this.restoreBtn.addEventListener('mouseleave', () => {
-        this.restoreBtn.style.background = 'rgba(0,0,0,0.8)';
-        this.restoreBtn.style.transform = 'scale(1)';
+        if (this.restoreBtn) {
+          this.restoreBtn.style.background = 'rgba(0,0,0,0.8)';
+          this.restoreBtn.style.transform = 'scale(1)';
+        }
       });
       
       console.log('brainrot: restoreBtn created');
@@ -283,8 +301,20 @@ class YouTubeBrainrotSplitter {
       
       // Make sure the button is added after other elements
       setTimeout(() => {
-        document.body.appendChild(this.restoreBtn);
-        console.log('brainrot: restoreBtn added to DOM');
+        try {
+          if (this.restoreBtn && document.body && this.restoreBtn instanceof Node) {
+            document.body.appendChild(this.restoreBtn);
+            console.log('brainrot: restoreBtn added to DOM');
+          } else {
+            console.error('brainrot: Cannot add restoreBtn - validation failed', {
+              hasButton: !!this.restoreBtn,
+              hasBody: !!document.body,
+              isNode: this.restoreBtn instanceof Node
+            });
+          }
+        } catch (appendError) {
+          console.error('brainrot: Error appending restoreBtn:', appendError);
+        }
       }, 100);
     } catch (err) {
       console.error('Error creating restore button:', err);
@@ -407,7 +437,13 @@ class YouTubeBrainrotSplitter {
 
     // Remove restore button if present
     if (this.restoreBtn) {
-      try { this.restoreBtn.remove(); } catch (err) {}
+      try { 
+        if (this.restoreBtn.parentNode) {
+          this.restoreBtn.parentNode.removeChild(this.restoreBtn);
+        }
+      } catch (err) {
+        console.error('Error removing restore button:', err);
+      }
       this.restoreBtn = null;
     }
 
