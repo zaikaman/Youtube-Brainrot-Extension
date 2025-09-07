@@ -1944,8 +1944,8 @@ class YouTubeBrainrotSplitter {
       }
     });
     
-    // Now target specific known YouTube overlays + suspected overlay elements
-    const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still, .video-stream.html5-main-video');
+    // Now target specific known YouTube overlays + suspected overlay elements + potential black overlay
+    const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still, .video-stream.html5-main-video, .ytp-cards-teaser-box');
     console.log('📋 Found existing YouTube overlays:', existingOverlays.length);
     let hiddenCount = 0;
     existingOverlays.forEach(overlay => {
@@ -2136,8 +2136,96 @@ class YouTubeBrainrotSplitter {
   }
 
   cleanupStuckOverlays() {
+    // Try the fullscreen trick to clear stuck overlays
+    this.triggerFullscreenClearTrick();
+    
     // Debug scan when cleanup is called
     this.debugScanAllOverlays();
+  }
+
+  triggerFullscreenClearTrick() {
+    try {
+      console.log('🔧 Attempting fullscreen clear trick...');
+      const video = document.querySelector('.video-stream.html5-main-video');
+      const player = document.querySelector('#movie_player');
+      
+      if (player && video) {
+        // First, scan for black overlay elements
+        this.findAndRemoveBlackOverlays();
+        
+        // Briefly trigger fullscreen and immediately exit to clear stuck overlays
+        // This mimics what the user described as working
+        const originalStyle = {
+          position: video.style.position,
+          pointerEvents: video.style.pointerEvents
+        };
+        
+        // Force a quick fullscreen state change to trigger YouTube's cleanup
+        player.classList.add('ytp-fullscreen');
+        
+        setTimeout(() => {
+          player.classList.remove('ytp-fullscreen');
+          
+          // Ensure video positioning is correct after the trick
+          video.style.position = 'static !important';
+          video.style.pointerEvents = 'auto !important';
+          
+          // Double check for black overlays after fullscreen trick
+          setTimeout(() => {
+            this.findAndRemoveBlackOverlays();
+          }, 100);
+          
+          console.log('✅ Fullscreen clear trick completed');
+        }, 50); // Very brief fullscreen
+        
+      }
+    } catch (error) {
+      console.error('❌ Fullscreen clear trick failed:', error);
+    }
+  }
+
+  findAndRemoveBlackOverlays() {
+    try {
+      const player = document.querySelector('#movie_player');
+      if (!player) return;
+      
+      // Look for elements that could be black overlays
+      const allElements = player.querySelectorAll('*');
+      let removedCount = 0;
+      
+      allElements.forEach(element => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        
+        // Check if element is large, positioned absolute, and potentially blocking
+        if (style.position === 'absolute' && 
+            style.display !== 'none' && 
+            rect.width > 200 && 
+            rect.height > 200) {
+          
+          const bgColor = style.backgroundColor;
+          const zIndex = parseInt(style.zIndex) || 0;
+          
+          // Check if it's a black/dark overlay or has high z-index
+          if ((bgColor === 'rgb(0, 0, 0)' || bgColor === 'rgba(0, 0, 0, 1)' || zIndex > 100) &&
+              !element.classList.contains('video-stream') &&
+              !element.classList.contains('html5-main-video')) {
+            
+            console.log('🖤 Found potential black overlay:', element.className || element.tagName, 'bg:', bgColor, 'z:', zIndex);
+            element.style.display = 'none !important';
+            element.style.visibility = 'hidden !important';
+            element.style.pointerEvents = 'none !important';
+            removedCount++;
+          }
+        }
+      });
+      
+      if (removedCount > 0) {
+        console.log('🗑️ Removed', removedCount, 'potential black overlays');
+      }
+    } catch (error) {
+      console.error('❌ Black overlay scan failed:', error);
+    }
   }
 
   forceCleanupStuckElements() {
