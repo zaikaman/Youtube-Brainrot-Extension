@@ -12,10 +12,9 @@ YouTube Brainrot Split Screen is a Chrome extension that automatically creates a
 
 ## ✨ Features
 
-- **🎬 Automatic Split Screen**: Activates when YouTube enters theater mode or when videos play on supported sites
 - **⚡ Manual Control**: Toggle split mode on/off with a dedicated button in YouTube's player controls
 - **🖱️ Interactive Controls**: Custom hover controls for seamless video management
-- **🎮 Multiple Triggers**: Works with YouTube theater mode, fullscreen, and Fullstack.edu.vn video playback
+- **🎮 Automatic Activation**: Works on Fullstack.edu.vn video playback
 - **📱 Responsive Design**: Optimized layout that adapts to different screen sizes
 - **🔧 Smart Cleanup**: Intelligent overlay management to prevent visual conflicts
 
@@ -27,10 +26,9 @@ YouTube Brainrot Split Screen is a Chrome extension that automatically creates a
 ## 🚀 How It Works
 
 ### YouTube Integration
-1. **Theater Mode Detection**: Monitors YouTube's theater mode changes and DOM mutations
-2. **Manual Activation**: Custom split mode button integrated into YouTube's control bar
-3. **Video Management**: Moves the native video element to the left panel while maintaining all functionality
-4. **Smart Controls**: Context-aware controls that appear on hover with progressive enhancement
+1. **Manual Activation**: Custom split mode button integrated into YouTube's control bar
+2. **Video Management**: Moves the native video element to the left panel while maintaining all functionality
+3. **Smart Controls**: Context-aware controls that appear on hover with progressive enhancement
 
 ### Split Screen Layout
 - **Left Panel (66.67%)**: YouTube video with full interactive controls
@@ -73,9 +71,8 @@ YouTube Brainrot Split Screen is a Chrome extension that automatically creates a
 ## 📋 Usage
 
 ### YouTube
-1. **Automatic**: Enter theater mode on YouTube - split screen activates automatically
-2. **Manual**: Click the split screen button (⚏) in the YouTube player controls
-3. **Exit**: Click the "✕ Exit Split" button
+1. **Manual**: Click the split screen button (⚏) in the YouTube player controls
+2. **Exit**: Click the "✕ Exit Split" button
 
 ### Fullstack.edu.vn
 1. **Automatic**: Play any video or click on YouTube iframes
@@ -144,8 +141,8 @@ The extension requires a local video file (`brainrot-video.mp4`) that you must p
 **Split mode doesn't activate**
 - Ensure you're on a supported website (YouTube.com or fullstack.edu.vn)
 - **Check if `brainrot-video.mp4` file exists** in the root directory
-- Try manual activation using the split screen button
-- Check if theater mode is available on the current video
+- Try manual activation using the split screen button in YouTube's player controls
+- Refresh the page if issues persist
 
 **Extension fails to load**
 - Verify that `brainrot-video.mp4` file is present in the root directory
