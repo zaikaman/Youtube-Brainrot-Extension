@@ -411,7 +411,8 @@ class YouTubeBrainrotSplitter {
     this.userManuallyExited = false; // Reset manual exit flag
 
     // Start monitoring for overlay creation
-    this.startOverlayMonitoring();
+    // Disable overlay monitoring - it may be causing issues
+    // this.startOverlayMonitoring();
 
     // No need to exit fullscreen since we're working with theater mode
     // Apply our custom layout directly
@@ -2055,33 +2056,33 @@ class YouTubeBrainrotSplitter {
       console.log('Started observing movie player for overlay changes');
     }
     
-    // Also periodically check for critical overlays as backup
-    this.overlayCheckInterval = setInterval(() => {
-      if (this.isActive) {
-        // Target known overlays + the problematic transparent overlays
-        const overlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still, .video-stream.html5-main-video, .ytp-player-content.ytp-timely-actions-content, .ytp-caption-window-container, .ytp-player-content.ytp-iv-player-content, .ytp-iv-video-content');
-        let foundVisible = 0;
-        overlays.forEach(overlay => {
-          // Special handling for video element
-          if (overlay.classList && overlay.classList.contains('html5-main-video')) {
-            if (getComputedStyle(overlay).position === 'absolute') {
-              console.log('⏰ PERIODIC fixing video positioning:', overlay.className || overlay.classList.toString());
-              overlay.style.position = 'static !important';
-              overlay.style.pointerEvents = 'auto !important';
-              foundVisible++;
-            }
-          } else if (overlay.style.display !== 'none' || overlay.style.visibility !== 'hidden') {
-            console.log('⏰ PERIODIC found visible overlay:', overlay.className || overlay.classList.toString());
-            overlay.style.display = 'none !important';
-            overlay.style.visibility = 'hidden !important';
-            overlay.style.pointerEvents = 'none !important';
-            overlay.style.opacity = '0 !important';
-            foundVisible++;
-          }
-        });
-        if (foundVisible > 0) console.log('⚡ Fixed', foundVisible, 'visible overlays');
-      }
-    }, 1000); // Check every 1 second (reduced frequency)
+    // Disable periodic overlay checking - may be causing issues
+    // this.overlayCheckInterval = setInterval(() => {
+    //   if (this.isActive) {
+    //     // Target known overlays + the problematic transparent overlays
+    //     const overlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still, .video-stream.html5-main-video, .ytp-player-content.ytp-timely-actions-content, .ytp-caption-window-container, .ytp-player-content.ytp-iv-player-content, .ytp-iv-video-content');
+    //     let foundVisible = 0;
+    //     overlays.forEach(overlay => {
+    //       // Special handling for video element
+    //       if (overlay.classList && overlay.classList.contains('html5-main-video')) {
+    //         if (getComputedStyle(overlay).position === 'absolute') {
+    //           console.log('⏰ PERIODIC fixing video positioning:', overlay.className || overlay.classList.toString());
+    //           overlay.style.position = 'static !important';
+    //           overlay.style.pointerEvents = 'auto !important';
+    //           foundVisible++;
+    //         }
+    //       } else if (overlay.style.display !== 'none' || overlay.style.visibility !== 'hidden') {
+    //         console.log('⏰ PERIODIC found visible overlay:', overlay.className || overlay.classList.toString());
+    //         overlay.style.display = 'none !important';
+    //         overlay.style.visibility = 'hidden !important';
+    //         overlay.style.pointerEvents = 'none !important';
+    //         overlay.style.opacity = '0 !important';
+    //         foundVisible++;
+    //       }
+    //     });
+    //     if (foundVisible > 0) console.log('⚡ Fixed', foundVisible, 'visible overlays');
+    //   }
+    // }, 1000); // Check every 1 second (reduced frequency)
   }
 
   stopOverlayMonitoring() {
@@ -2137,25 +2138,10 @@ class YouTubeBrainrotSplitter {
   }
 
   cleanupStuckOverlays() {
-    console.log('🎭 Trying multiple refresh approaches...');
+    console.log('🧹 Simple cleanup only...');
     
-    // Try different approaches in sequence
-    this.forceStyleRefresh();
-    
-    setTimeout(() => {
-      this.toggleIsolation();
-      
-      setTimeout(() => {
-        this.forceVideoRestack();
-        
-        setTimeout(() => {
-          // Last resort: simulate what F12 does
-          this.simulateDevToolsToggle();
-        }, 150);
-      }, 100);
-    }, 50);
-    
-    // Debug scan when cleanup is called
+    // Disable all fancy approaches - they made it worse
+    // Just do basic debug scan
     this.debugScanAllOverlays();
   }
 
