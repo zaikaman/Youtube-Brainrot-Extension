@@ -11,6 +11,7 @@ class YouTubeBrainrotSplitter {
   this.movedViaStream = false;
   this.movedOriginalVideoElement = null;
   this.movedOriginalVideoWasMuted = null;
+  this.userManuallypausedVideo = false; // Track if user manually paused video
     // Use local video file path
     this.brainrotUrls = [
       'brainrot-video.mp4' // Local video file in extension folder
@@ -542,28 +543,35 @@ class YouTubeBrainrotSplitter {
     // Prevent YouTube from pausing or manipulating our moved video
     if (!videoElement) return;
     
-    // Override pause/play methods temporarily to log and handle them
+    // Override pause/play methods to respect user actions
     const originalPause = videoElement.pause;
     const originalPlay = videoElement.play;
     
     videoElement.pause = function() {
-      console.log('YouTube tried to pause video, allowing but monitoring...');
+      console.log('Video pause called - respecting user action');
       return originalPause.call(this);
     };
     
     videoElement.play = function() {
-      console.log('YouTube called play on video');
+      console.log('Video play called');
       return originalPlay.call(this);
     };
     
-    // Prevent YouTube events from bubbling up
+    // Monitor pause events but don't interfere with user actions
     videoElement.addEventListener('pause', (e) => {
-      console.log('Video paused event, checking if intentional...');
-      // Don't stop propagation as it might break YouTube functionality
+      console.log('Video paused event - user action or system pause');
+      // Don't auto-resume if user manually paused
+      if (this.userManuallypausedVideo) {
+        console.log('User manually paused - not interfering');
+      }
     }, true);
     
     videoElement.addEventListener('play', (e) => {
       console.log('Video play event detected');
+      // Reset manual pause flag when video starts playing
+      if (this.userManuallypausedVideo) {
+        this.userManuallypausedVideo = false;
+      }
     }, true);
     
     // Monitor for YouTube trying to move the video back
@@ -701,23 +709,17 @@ class YouTubeBrainrotSplitter {
           }, 100);
         }
 
-        // Add continuous monitoring to prevent auto-deactivation
+        // Add monitoring to ensure video element stays in our container
+        // but don't auto-resume paused videos (respect user pause actions)
         this.videoStateMonitor = setInterval(() => {
           if (this.isActive && nativeVideo) {
-            // Check if video is still playing when it should be
-            if (wasPlaying && nativeVideo.paused) {
-              console.log('Video unexpectedly paused, resuming...');
-              nativeVideo.play().catch(e => console.log('Resume failed:', e));
-            }
-            
-            // Ensure video element stays in our container
+            // Only ensure video element stays in our container
+            // Don't auto-resume paused videos - let user control play/pause
             if (nativeVideo.parentElement !== this.youtubeMovedContainer) {
               console.log('Video element moved back by YouTube, re-moving...');
               this.youtubeMovedContainer.appendChild(nativeVideo);
               nativeVideo.currentTime = currentTime;
-              if (wasPlaying) {
-                nativeVideo.play().catch(e => console.log('Re-play failed:', e));
-              }
+              // Don't auto-play when re-moving, respect current pause state
             }
           }
         }, 1000); // Check every second
@@ -1619,11 +1621,21 @@ class YouTubeBrainrotSplitter {
           
           if (video) {
             if (video.paused) {
-              video.play();
-              playBtn.innerHTML = '⏸️';
+              console.log('User clicked play button - resuming video');
+              video.play().then(() => {
+                playBtn.innerHTML = '⏸️';
+              }).catch(e => {
+                console.error('Play failed:', e);
+              });
             } else {
+              console.log('User clicked pause button - pausing video');
               video.pause();
               playBtn.innerHTML = '▶️';
+              // Mark that user manually paused to prevent auto-resume
+              this.userManuallypausedVideo = true;
+              setTimeout(() => {
+                this.userManuallypausedVideo = false;
+              }, 5000); // Clear flag after 5 seconds
             }
           }
         } catch (e) {
@@ -1731,7 +1743,16 @@ class YouTubeBrainrotSplitter {
             const durationSec = Math.floor(video.duration % 60);
             timeDisplay.textContent = `${currentMin}:${currentSec.toString().padStart(2, '0')} / ${durationMin}:${durationSec.toString().padStart(2, '0')}`;
             
-            // Update button states
+            // Update button states and detect user pause via YouTube controls
+            if (video.paused && playBtn.innerHTML === '⏸️') {
+              // Video was paused but our button still shows pause - user paused via YouTube controls
+              console.log('Detected user pause via YouTube controls');
+              this.userManuallypausedVideo = true;
+              setTimeout(() => {
+                this.userManuallypausedVideo = false;
+              }, 5000); // Clear flag after 5 seconds
+            }
+            
             playBtn.innerHTML = video.paused ? '▶️' : '⏸️';
             volumeBtn.innerHTML = video.muted ? '🔇' : '🔊';
           }
