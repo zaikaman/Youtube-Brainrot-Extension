@@ -1933,7 +1933,18 @@ class YouTubeBrainrotSplitter {
   startOverlayMonitoring() {
     console.log('🔍 Starting overlay monitoring...');
     
-    // First, find and hide any existing overlays - only target specific YouTube overlays
+    // First, scan for ALL possible overlays to understand what's there
+    const allPossibleOverlays = document.querySelectorAll('#movie_player [class*="overlay"], #movie_player [class*="spinner"], #movie_player [class*="pause"], #movie_player [class*="ytp"]');
+    console.log('🔍 SCAN: Found', allPossibleOverlays.length, 'possible overlay elements in movie_player');
+    
+    // Log what we found for debugging
+    allPossibleOverlays.forEach((el, i) => {
+      if (i < 10) { // Only log first 10 to avoid spam
+        console.log(`  ${i+1}. ${el.tagName}.${el.className || el.classList.toString()} - display:${getComputedStyle(el).display}, visibility:${getComputedStyle(el).visibility}`);
+      }
+    });
+    
+    // Now target specific known YouTube overlays
     const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner');
     console.log('📋 Found existing YouTube overlays:', existingOverlays.length);
     let hiddenCount = 0;
@@ -2048,8 +2059,49 @@ class YouTubeBrainrotSplitter {
     }
   }
 
+  debugScanAllOverlays() {
+    console.log('🔍 DEBUG SCAN: Looking for ALL overlays in movie_player...');
+    const moviePlayer = document.querySelector('#movie_player');
+    if (moviePlayer) {
+      const allElements = moviePlayer.querySelectorAll('*');
+      console.log(`Total elements in movie_player: ${allElements.length}`);
+      
+      // Look for elements that might be overlays
+      const possibleOverlays = [];
+      allElements.forEach(el => {
+        const style = getComputedStyle(el);
+        const className = el.className || el.classList.toString();
+        
+        // Check if element might be an overlay (positioned absolute/fixed, high z-index, etc.)
+        if ((style.position === 'absolute' || style.position === 'fixed') && 
+            (parseInt(style.zIndex) > 100 || style.zIndex === 'auto') &&
+            (style.display !== 'none' && style.visibility !== 'hidden')) {
+          possibleOverlays.push({
+            element: el,
+            tag: el.tagName,
+            className: className,
+            position: style.position,
+            zIndex: style.zIndex,
+            display: style.display,
+            visibility: style.visibility,
+            pointerEvents: style.pointerEvents
+          });
+        }
+      });
+      
+      console.log(`Found ${possibleOverlays.length} possible overlay elements:`);
+      possibleOverlays.forEach((overlay, i) => {
+        console.log(`  ${i+1}. ${overlay.tag}.${overlay.className} - pos:${overlay.position}, z:${overlay.zIndex}, display:${overlay.display}, pointerEvents:${overlay.pointerEvents}`);
+      });
+      
+      return possibleOverlays;
+    }
+    return [];
+  }
+
   cleanupStuckOverlays() {
-    // CSS handles overlay visibility now, no cleanup needed
+    // Debug scan when cleanup is called
+    this.debugScanAllOverlays();
   }
 
   forceCleanupStuckElements() {
