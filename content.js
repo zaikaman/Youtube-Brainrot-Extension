@@ -839,6 +839,12 @@ class YouTubeBrainrotSplitter {
   // From 3rd activation onwards, always show controls without needing hover
   if (this.activationCount >= 3) {
     console.log(`🎯 Activation #${this.activationCount} (>=3): Always showing controls without hover requirement`);
+    
+    // DISABLE hover handlers completely for activation >= 3
+    console.log('🚫 Disabling hover handlers to prevent conflicts...');
+    this.detachHoverControls();
+    this._removeGlobalHoverWatcher();
+    
     try { 
       this.forceShowControlsAlways(); 
       
@@ -849,6 +855,9 @@ class YouTubeBrainrotSplitter {
       
       // Set up periodic check to ensure controls stay visible
       this.startPeriodicControlsCheck();
+      
+      // Set up style protection to prevent external interference
+      this.protectControlsStyles();
       
     } catch (e) {
       console.error('❌ Error forcing controls to always show:', e);
@@ -877,6 +886,9 @@ class YouTubeBrainrotSplitter {
     
     // Stop periodic controls check
     this.stopPeriodicControlsCheck();
+    
+    // Stop controls style protection
+    this.stopControlsStyleProtection();
     
     // Do targeted cleanup for stuck overlays only, avoiding aggressive cleanup that causes black screen
     this.cleanupStuckOverlays();
@@ -1504,6 +1516,71 @@ class YouTubeBrainrotSplitter {
     }
   }
 
+  // Protect controls styles from external interference using MutationObserver
+  protectControlsStyles() {
+    try {
+      console.log('🛡️ Setting up controls style protection...');
+      
+      // Stop any existing protection
+      this.stopControlsStyleProtection();
+      
+      if (!this.controlsOverlay) {
+        console.log('⚠️ No controls overlay to protect');
+        return;
+      }
+      
+      // Create MutationObserver to watch for style changes
+      this._styleProtectionObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+            const target = mutation.target;
+            
+            // If someone tries to hide our controls overlay, force it back to visible
+            if (target === this.controlsOverlay) {
+              const computedStyle = getComputedStyle(target);
+              const isHidden = computedStyle.display === 'none' || 
+                              computedStyle.visibility === 'hidden' || 
+                              computedStyle.opacity === '0';
+              
+              if (isHidden) {
+                console.log('🚨 External interference detected! Restoring controls visibility with maximum priority...');
+                target.style.setProperty('display', 'flex', 'important');
+                target.style.setProperty('visibility', 'visible', 'important');
+                target.style.setProperty('opacity', '1', 'important');
+                target.style.setProperty('pointer-events', 'auto', 'important');
+                target.style.setProperty('z-index', '2147483680', 'important');
+              }
+            }
+          }
+        });
+      });
+      
+      // Observe the controls overlay for style changes
+      this._styleProtectionObserver.observe(this.controlsOverlay, {
+        attributes: true,
+        attributeFilter: ['style']
+      });
+      
+      console.log('✅ Controls style protection active');
+      
+    } catch (error) {
+      console.error('❌ Error setting up controls style protection:', error);
+    }
+  }
+  
+  // Stop controls style protection
+  stopControlsStyleProtection() {
+    try {
+      if (this._styleProtectionObserver) {
+        console.log('🛑 Stopping controls style protection');
+        this._styleProtectionObserver.disconnect();
+        this._styleProtectionObserver = null;
+      }
+    } catch (error) {
+      console.error('❌ Error stopping controls style protection:', error);
+    }
+  }
+
   // Safety check to ensure controls are visible (for activation #3+)
   ensureControlsVisible() {
     try {
@@ -1532,11 +1609,13 @@ class YouTubeBrainrotSplitter {
                        computedStyle.opacity !== '0';
       
       if (!isVisible) {
-        console.log('❌ Controls overlay not visible, forcing visibility...');
-        this.controlsOverlay.style.display = 'flex !important';
-        this.controlsOverlay.style.visibility = 'visible !important';
-        this.controlsOverlay.style.opacity = '1 !important';
-        console.log('✅ Controls overlay forced visible');
+        console.log('❌ Controls overlay not visible, forcing visibility with maximum priority...');
+        this.controlsOverlay.style.setProperty('display', 'flex', 'important');
+        this.controlsOverlay.style.setProperty('visibility', 'visible', 'important');
+        this.controlsOverlay.style.setProperty('opacity', '1', 'important');
+        this.controlsOverlay.style.setProperty('pointer-events', 'auto', 'important');
+        this.controlsOverlay.style.setProperty('z-index', '2147483680', 'important');
+        console.log('✅ Controls overlay forced visible with maximum priority');
       } else {
         console.log('✅ Controls overlay is properly visible');
       }
@@ -1580,13 +1659,21 @@ class YouTubeBrainrotSplitter {
         console.log('ℹ️ Controls overlay already exists');
       }
       
-      // Force show controls overlay permanently
+      // Force show controls overlay permanently with maximum priority
       if (this.controlsOverlay) {
-        console.log('🎯 Forcing controls overlay to always show...');
-        this.controlsOverlay.style.display = 'flex !important';
-        this.controlsOverlay.style.visibility = 'visible !important';
-        this.controlsOverlay.style.opacity = '1 !important';
-        console.log('✅ Controls overlay forced to always show');
+        console.log('🎯 Forcing controls overlay to always show with maximum priority...');
+        
+        // Use setProperty with important flag for maximum override power
+        this.controlsOverlay.style.setProperty('display', 'flex', 'important');
+        this.controlsOverlay.style.setProperty('visibility', 'visible', 'important');
+        this.controlsOverlay.style.setProperty('opacity', '1', 'important');
+        this.controlsOverlay.style.setProperty('pointer-events', 'auto', 'important');
+        this.controlsOverlay.style.setProperty('z-index', '2147483680', 'important');
+        
+        // Also add a distinctive class to identify our protected controls
+        this.controlsOverlay.classList.add('brainrot-controls-protected');
+        
+        console.log('✅ Controls overlay forced to always show with maximum priority');
       } else {
         console.log('❌ No controls overlay to force show');
       }
