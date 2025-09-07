@@ -35,7 +35,6 @@ YouTube Brainrot Split Screen is a Chrome extension that automatically creates a
 ### Split Screen Layout
 - **Left Panel (66.67%)**: YouTube video with full interactive controls
 - **Right Panel (33.33%)**: Brainrot content (local video file) with autoplay and loop
-- **Escape Key**: Quick exit from split mode
 - **Custom Controls**: Play/pause, volume, progress bar, and fullscreen toggle
 
 ## 🛠️ Installation
@@ -76,15 +75,11 @@ YouTube Brainrot Split Screen is a Chrome extension that automatically creates a
 ### YouTube
 1. **Automatic**: Enter theater mode on YouTube - split screen activates automatically
 2. **Manual**: Click the split screen button (⚏) in the YouTube player controls
-3. **Exit**: Press `Escape` key, click the "✕ Exit Split" button, or use the split screen button again
+3. **Exit**: Click the "✕ Exit Split" button
 
 ### Fullstack.edu.vn
 1. **Automatic**: Play any video or click on YouTube iframes
-2. **Exit**: Press `Escape` key or click the "✕ Exit Split" button
-
-### Keyboard Shortcuts
-- `Escape` or `F` - Exit split screen mode
-- Standard YouTube shortcuts work in the left panel
+2. **Exit**: Click the "✕ Exit Split" button
 
 ## ⚙️ Technical Details
 
@@ -159,7 +154,6 @@ The extension requires a local video file (`brainrot-video.mp4`) that you must p
 
 **Controls not responding**
 - Hover over the left video panel to reveal controls
-- Try pressing `Escape` to reset the layout
 - Refresh the page if issues persist
 
 **Video quality issues**
