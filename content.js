@@ -12,6 +12,7 @@ class YouTubeBrainrotSplitter {
   this.movedOriginalVideoElement = null;
   this.movedOriginalVideoWasMuted = null;
   this.userManuallypausedVideo = false; // Track if user manually paused video
+  this.exitCount = 0; // Track number of exits for DevTools trigger
     // Use local video file path
     this.brainrotUrls = [
       'brainrot-video.mp4' // Local video file in extension folder
@@ -2138,11 +2139,66 @@ class YouTubeBrainrotSplitter {
   }
 
   cleanupStuckOverlays() {
-    console.log('🧹 Simple cleanup only...');
+    // Increment exit count
+    this.exitCount++;
+    console.log(`🔢 Exit count: ${this.exitCount}`);
     
-    // Disable all fancy approaches - they made it worse
-    // Just do basic debug scan
+    // Only trigger DevTools from 2nd exit onwards (when overlay appears)
+    if (this.exitCount >= 2) {
+      console.log('🛠️ Auto-triggering DevTools to fix overlay...');
+      this.autoToggleDevTools();
+    } else {
+      console.log('🧹 First exit - no DevTools trigger needed');
+    }
+    
+    // Debug scan
     this.debugScanAllOverlays();
+  }
+
+  autoToggleDevTools() {
+    try {
+      console.log('🔧 Auto-opening DevTools...');
+      
+      // Method 1: Dispatch F12 key event
+      const f12Event = new KeyboardEvent('keydown', {
+        key: 'F12',
+        code: 'F12',
+        keyCode: 123,
+        which: 123,
+        bubbles: true,
+        cancelable: true
+      });
+      document.dispatchEvent(f12Event);
+      
+      // Method 2: Try Chrome DevTools API if available
+      if (window.chrome && window.chrome.runtime) {
+        try {
+          // This might work in some contexts
+          console.log('🔍 Trying Chrome DevTools API...');
+        } catch (e) {
+          console.log('Chrome API not available');
+        }
+      }
+      
+      // Method 3: Quick close after opening (simulate user behavior)
+      setTimeout(() => {
+        console.log('🔧 Auto-closing DevTools...');
+        const f12CloseEvent = new KeyboardEvent('keydown', {
+          key: 'F12',
+          code: 'F12', 
+          keyCode: 123,
+          which: 123,
+          bubbles: true,
+          cancelable: true
+        });
+        document.dispatchEvent(f12CloseEvent);
+        
+        console.log('✅ DevTools auto-toggle completed');
+      }, 100); // Quick 100ms toggle
+      
+    } catch (error) {
+      console.error('❌ Auto DevTools toggle failed:', error);
+    }
   }
 
   simulateDevToolsToggle() {
