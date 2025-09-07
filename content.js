@@ -1945,11 +1945,19 @@ class YouTubeBrainrotSplitter {
     });
     
     // Now target specific known YouTube overlays + suspected overlay elements
-    const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still');
+    const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still, .video-stream.html5-main-video');
     console.log('📋 Found existing YouTube overlays:', existingOverlays.length);
     let hiddenCount = 0;
     existingOverlays.forEach(overlay => {
-      if (overlay.style.display !== 'none') {
+      // Special handling for video element - don't hide it, just fix positioning
+      if (overlay.classList && overlay.classList.contains('html5-main-video')) {
+        if (getComputedStyle(overlay).position === 'absolute') {
+          console.log('🎥 Fixing video positioning:', overlay.className || overlay.classList.toString());
+          overlay.style.position = 'static !important';
+          overlay.style.pointerEvents = 'auto !important';
+          hiddenCount++;
+        }
+      } else if (overlay.style.display !== 'none') {
         console.log('🚫 Hiding overlay:', overlay.className || overlay.classList.toString());
         overlay.style.display = 'none !important';
         overlay.style.visibility = 'hidden !important';
@@ -1968,7 +1976,7 @@ class YouTubeBrainrotSplitter {
           if (mutation.type === 'childList') {
             mutation.addedNodes.forEach((node) => {
               if (node.nodeType === Node.ELEMENT_NODE) {
-                // Check if this is a critical YouTube overlay only
+                // Check if this is a critical YouTube overlay or video element
                 if (node.classList && (
                   node.classList.contains('ytp-pause-overlay') ||
                   node.classList.contains('ytp-spinner') ||
@@ -1982,6 +1990,13 @@ class YouTubeBrainrotSplitter {
                   node.style.visibility = 'hidden !important';
                   node.style.pointerEvents = 'none !important';
                   node.style.opacity = '0 !important';
+                } else if (node.classList && node.classList.contains('html5-main-video')) {
+                  console.log('🎥 NEW video element:', node.className || node.classList.toString());
+                  // Fix positioning if needed
+                  if (getComputedStyle(node).position === 'absolute') {
+                    node.style.position = 'static !important';
+                    node.style.pointerEvents = 'auto !important';
+                  }
                 }
                 
                 // Also check child elements for critical overlays only
@@ -2015,6 +2030,13 @@ class YouTubeBrainrotSplitter {
               target.style.visibility = 'hidden !important';
               target.style.pointerEvents = 'none !important';
               target.style.opacity = '0 !important';
+            } else if (target.classList && target.classList.contains('html5-main-video')) {
+              console.log('🎥 STYLE change on video:', target.className || target.classList.toString());
+              // Fix positioning if it gets changed to absolute
+              if (getComputedStyle(target).position === 'absolute') {
+                target.style.position = 'static !important';
+                target.style.pointerEvents = 'auto !important';
+              }
             }
           }
         }
@@ -2036,10 +2058,18 @@ class YouTubeBrainrotSplitter {
     // Also periodically check for critical overlays as backup
     this.overlayCheckInterval = setInterval(() => {
       if (this.isActive) {
-        const overlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still');
+        const overlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still, .video-stream.html5-main-video');
         let foundVisible = 0;
         overlays.forEach(overlay => {
-          if (overlay.style.display !== 'none' || overlay.style.visibility !== 'hidden') {
+          // Special handling for video element
+          if (overlay.classList && overlay.classList.contains('html5-main-video')) {
+            if (getComputedStyle(overlay).position === 'absolute') {
+              console.log('⏰ PERIODIC fixing video positioning:', overlay.className || overlay.classList.toString());
+              overlay.style.position = 'static !important';
+              overlay.style.pointerEvents = 'auto !important';
+              foundVisible++;
+            }
+          } else if (overlay.style.display !== 'none' || overlay.style.visibility !== 'hidden') {
             console.log('⏰ PERIODIC found visible overlay:', overlay.className || overlay.classList.toString());
             overlay.style.display = 'none !important';
             overlay.style.visibility = 'hidden !important';

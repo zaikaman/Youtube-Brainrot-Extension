@@ -71,6 +71,12 @@ body.brainrot-split-active .ytp-videowall-still {
   transition: opacity 0.2s ease !important;
 }
 
+/* Fix video element positioning to prevent overlay behavior */
+body.brainrot-split-active .video-stream.html5-main-video {
+  position: static !important;
+  pointer-events: auto !important;
+}
+
 /* Force show controls when they have the visible class */
 body.brainrot-split-active .ytp-chrome-controls-visible .ytp-chrome-top,
 body.brainrot-split-active .ytp-chrome-controls-visible .ytp-chrome-bottom,
