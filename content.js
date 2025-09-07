@@ -1522,7 +1522,7 @@ class YouTubeBrainrotSplitter {
           if (video) {
             if (video.paused) {
               video.play().then(() => {
-                playBtn.innerHTML = '⏸️';
+              playBtn.innerHTML = '⏸️';
               }).catch(e => {
                 console.error('Play failed:', e);
               });
@@ -1944,8 +1944,8 @@ class YouTubeBrainrotSplitter {
       }
     });
     
-    // Now target specific known YouTube overlays
-    const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner');
+    // Now target specific known YouTube overlays + suspected overlay elements
+    const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still');
     console.log('📋 Found existing YouTube overlays:', existingOverlays.length);
     let hiddenCount = 0;
     existingOverlays.forEach(overlay => {
@@ -1971,7 +1971,10 @@ class YouTubeBrainrotSplitter {
                 // Check if this is a critical YouTube overlay only
                 if (node.classList && (
                   node.classList.contains('ytp-pause-overlay') ||
-                  node.classList.contains('ytp-spinner')
+                  node.classList.contains('ytp-spinner') ||
+                  node.classList.contains('ytp-cued-thumbnail-overlay-image') ||
+                  node.classList.contains('ytp-endscreen-content') ||
+                  node.classList.contains('ytp-videowall-still')
                 )) {
                   console.log('🆕 NEW overlay element:', node.className || node.classList.toString());
                   // Immediately hide it
@@ -1982,7 +1985,7 @@ class YouTubeBrainrotSplitter {
                 }
                 
                 // Also check child elements for critical overlays only
-                const overlayChildren = node.querySelectorAll && node.querySelectorAll('.ytp-pause-overlay, .ytp-spinner');
+                const overlayChildren = node.querySelectorAll && node.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still');
                 if (overlayChildren && overlayChildren.length > 0) {
                   overlayChildren.forEach(overlay => {
                     console.log('🆕 NEW child overlay:', overlay.className || overlay.classList.toString());
@@ -2001,7 +2004,10 @@ class YouTubeBrainrotSplitter {
             const target = mutation.target;
             if (target.classList && (
               target.classList.contains('ytp-pause-overlay') ||
-              target.classList.contains('ytp-spinner')
+              target.classList.contains('ytp-spinner') ||
+              target.classList.contains('ytp-cued-thumbnail-overlay-image') ||
+              target.classList.contains('ytp-endscreen-content') ||
+              target.classList.contains('ytp-videowall-still')
             )) {
               console.log('🔄 STYLE change on overlay:', target.className || target.classList.toString());
               // Force hide it again
@@ -2030,7 +2036,7 @@ class YouTubeBrainrotSplitter {
     // Also periodically check for critical overlays as backup
     this.overlayCheckInterval = setInterval(() => {
       if (this.isActive) {
-        const overlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner');
+        const overlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still');
         let foundVisible = 0;
         overlays.forEach(overlay => {
           if (overlay.style.display !== 'none' || overlay.style.visibility !== 'hidden') {

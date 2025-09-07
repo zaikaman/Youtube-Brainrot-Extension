@@ -60,7 +60,10 @@ body.brainrot-split-active .ytp-gradient-bottom,
 body.brainrot-split-active .ytp-chrome-controls,
 body.brainrot-split-active .ytp-progress-bar-container,
 body.brainrot-split-active .ytp-pause-overlay,
-body.brainrot-split-active .ytp-spinner {
+body.brainrot-split-active .ytp-spinner,
+body.brainrot-split-active .ytp-cued-thumbnail-overlay-image,
+body.brainrot-split-active .ytp-endscreen-content,
+body.brainrot-split-active .ytp-videowall-still {
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
