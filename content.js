@@ -2227,6 +2227,10 @@ class YouTubeBrainrotSplitter {
             if (document.exitFullscreen) {
               document.exitFullscreen().then(() => {
                 console.log('✅ Auto fullscreen toggle completed');
+                // Fix fullscreen button state after toggle
+                setTimeout(() => {
+                  this.restoreFullscreenButtonState();
+                }, 100);
               }).catch(e => {
                 console.error('Exit fullscreen failed:', e);
               });
@@ -2263,10 +2267,47 @@ class YouTubeBrainrotSplitter {
         document.dispatchEvent(new Event('mozfullscreenchange'));
         
         console.log('✅ Fullscreen events simulation completed');
+        // Also restore button state after simulation
+        setTimeout(() => {
+          this.restoreFullscreenButtonState();
+        }, 100);
       }, 50);
       
     } catch (error) {
       console.error('❌ Fullscreen events simulation failed:', error);
+    }
+  }
+
+  restoreFullscreenButtonState() {
+    try {
+      console.log('🔧 Restoring fullscreen button state...');
+      
+      const fullscreenBtn = document.querySelector('.ytp-fullscreen-button');
+      if (fullscreenBtn) {
+        // Force refresh button state
+        fullscreenBtn.style.opacity = '1';
+        fullscreenBtn.style.pointerEvents = 'auto';
+        fullscreenBtn.style.visibility = 'visible';
+        fullscreenBtn.disabled = false;
+        
+        // Remove any disabled classes
+        fullscreenBtn.classList.remove('ytp-button-disabled');
+        fullscreenBtn.setAttribute('aria-disabled', 'false');
+        
+        // Trigger a reflow to ensure changes are applied
+        fullscreenBtn.offsetHeight;
+        
+        // Dispatch a synthetic event to update YouTube's internal state
+        fullscreenBtn.dispatchEvent(new Event('focus'));
+        fullscreenBtn.dispatchEvent(new Event('blur'));
+        
+        console.log('✅ Fullscreen button state restored');
+      } else {
+        console.log('⚠️ Fullscreen button not found');
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to restore fullscreen button:', error);
     }
   }
 
