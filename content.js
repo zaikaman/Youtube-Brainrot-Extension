@@ -457,16 +457,15 @@ class YouTubeBrainrotSplitter {
       } catch (e) {}
     });
     
-    // Reset all container references
-    this.originalVideoContainer = null;
-    this.brainrotContainer = null;
-    this.brainrotVideo = null;
-    this.controlsOverlay = null;
-    this.youtubeMovedContainer = null;
-    this.movedVideoOriginalParent = null;
-    this.movedVideoNextSibling = null;
-    this.movedOriginalVideoElement = null;
-    this.videoPlaceholder = null;
+    // DON'T reset container references here - only reset them in deactivateSplitScreen
+    // This preserves references needed for hover controls to work on subsequent activations
+    // Only clean up intervals and observers
+    if (this.controlsOverlay) {
+      try {
+        this.controlsOverlay.remove();
+        this.controlsOverlay = null;
+      } catch (e) {}
+    }
     
     // Clear any leftover intervals
     if (this.progressUpdateInterval) {
@@ -975,6 +974,12 @@ class YouTubeBrainrotSplitter {
         this.movedVideoOriginalParent = null;
         this.movedVideoNextSibling = null;
         this.movedOriginalVideoElement = null;
+        
+        // Reset all container references for complete cleanup
+        this.originalVideoContainer = null;
+        this.brainrotContainer = null;
+        this.brainrotVideo = null;
+        this.videoPlaceholder = null;
       } catch (err) {
         console.error('Error restoring video position:', err);
       }
@@ -1217,6 +1222,11 @@ class YouTubeBrainrotSplitter {
     this._hoverEnter = () => {
       try {
         
+        // Try to find moved container if reference is lost
+        if (!this.youtubeMovedContainer) {
+          this.youtubeMovedContainer = document.querySelector('.youtube-moved-container');
+        }
+        
         // Create controls overlay if we have moved container
         if (this.youtubeMovedContainer && !this.controlsOverlay) {
           this.createControlsOverlay();
@@ -1283,11 +1293,14 @@ class YouTubeBrainrotSplitter {
   }
 
   _setupGlobalHoverWatcher() {
-    // If already present, skip
-    if (this._globalWatcher) return;
+    // Remove any existing watcher first to prevent conflicts
+    this._removeGlobalHoverWatcher();
     
     this._globalWatcher = (e) => {
       try {
+        // Only process if split mode is active
+        if (!this.isActive) return;
+        
         const leftWidth = Math.round(window.innerWidth * 2 / 3);
         const isInLeftArea = e.clientX <= leftWidth && e.clientY >= 0 && e.clientY <= window.innerHeight;
         
@@ -1464,6 +1477,17 @@ class YouTubeBrainrotSplitter {
   createControlsOverlay() {
     try {
       if (this.controlsOverlay) return;
+
+      // Try to find moved container if reference is lost
+      if (!this.youtubeMovedContainer) {
+        this.youtubeMovedContainer = document.querySelector('.youtube-moved-container');
+      }
+      
+      // If still no container, can't create overlay
+      if (!this.youtubeMovedContainer) {
+        console.warn('Cannot create controls overlay: no youtube moved container found');
+        return;
+      }
 
       this.controlsOverlay = document.createElement('div');
       this.controlsOverlay.className = 'brainrot-controls-overlay';
