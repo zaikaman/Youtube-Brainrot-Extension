@@ -2137,18 +2137,58 @@ class YouTubeBrainrotSplitter {
   }
 
   cleanupStuckOverlays() {
-    console.log('🧹 Starting gentle overlay cleanup...');
+    console.log('🔄 Forcing layout recalculation (like F12/fullscreen)...');
     
-    // Try gentle approaches only - nuclear was too destructive
-    this.findAndRemoveBlackOverlays();
+    // Since F12 and fullscreen fix it, try to trigger similar layout recalc
+    this.forceLayoutRecalculation();
     
-    // Skip nuclear approaches for now
-    // this.triggerVideoRefresh();
-    // this.triggerFullscreenClearTrick(); 
-    // this.forceRecreatePlayerContainer();
+    // Skip DOM manipulation - it's not a DOM issue
+    // this.findAndRemoveBlackOverlays();
     
     // Debug scan when cleanup is called
     this.debugScanAllOverlays();
+  }
+
+  forceLayoutRecalculation() {
+    try {
+      console.log('💻 Mimicking F12/fullscreen layout recalc...');
+      
+      const player = document.querySelector('#movie_player');
+      if (!player) return;
+      
+      // Method 1: Force reflow by reading layout properties
+      console.log('📐 Triggering reflow...');
+      const originalHeight = player.style.height;
+      player.style.height = '99.9%';
+      player.offsetHeight; // Force reflow
+      player.style.height = '100%';
+      player.offsetHeight; // Force another reflow
+      player.style.height = originalHeight;
+      
+      // Method 2: Toggle hardware acceleration
+      console.log('🎮 Toggling GPU layers...');
+      player.style.transform = 'translateZ(0)';
+      requestAnimationFrame(() => {
+        player.style.transform = '';
+        
+        // Method 3: Force repaint with opacity trick
+        console.log('🎨 Forcing repaint...');
+        player.style.opacity = '0.999';
+        requestAnimationFrame(() => {
+          player.style.opacity = '';
+          
+          // Method 4: Trigger resize events (like F12 does)
+          console.log('📺 Dispatching resize events...');
+          window.dispatchEvent(new Event('resize'));
+          document.dispatchEvent(new Event('fullscreenchange'));
+          
+          console.log('✅ Layout recalculation completed');
+        });
+      });
+      
+    } catch (error) {
+      console.error('❌ Layout recalc failed:', error);
+    }
   }
 
   forceRecreatePlayerContainer() {
