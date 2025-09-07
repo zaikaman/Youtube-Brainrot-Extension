@@ -1939,7 +1939,7 @@ class YouTubeBrainrotSplitter {
     let hiddenCount = 0;
     existingOverlays.forEach(overlay => {
       if (overlay.style.display !== 'none') {
-        console.log('🚫 Hiding overlay:', overlay.className);
+        console.log('🚫 Hiding overlay:', overlay.className || overlay.classList.toString());
         overlay.style.display = 'none !important';
         overlay.style.visibility = 'hidden !important';
         overlay.style.pointerEvents = 'none !important';
@@ -1962,7 +1962,7 @@ class YouTubeBrainrotSplitter {
                   node.classList.contains('ytp-pause-overlay') ||
                   node.classList.contains('ytp-spinner')
                 )) {
-                  console.log('🆕 NEW overlay element:', node.className);
+                  console.log('🆕 NEW overlay element:', node.className || node.classList.toString());
                   // Immediately hide it
                   node.style.display = 'none !important';
                   node.style.visibility = 'hidden !important';
@@ -1974,7 +1974,7 @@ class YouTubeBrainrotSplitter {
                 const overlayChildren = node.querySelectorAll && node.querySelectorAll('.ytp-pause-overlay, .ytp-spinner');
                 if (overlayChildren && overlayChildren.length > 0) {
                   overlayChildren.forEach(overlay => {
-                    console.log('🆕 NEW child overlay:', overlay.className);
+                    console.log('🆕 NEW child overlay:', overlay.className || overlay.classList.toString());
                     overlay.style.display = 'none !important';
                     overlay.style.visibility = 'hidden !important';
                     overlay.style.pointerEvents = 'none !important';
@@ -1992,7 +1992,7 @@ class YouTubeBrainrotSplitter {
               target.classList.contains('ytp-pause-overlay') ||
               target.classList.contains('ytp-spinner')
             )) {
-              console.log('🔄 STYLE change on overlay:', target.className);
+              console.log('🔄 STYLE change on overlay:', target.className || target.classList.toString());
               // Force hide it again
               target.style.display = 'none !important';
               target.style.visibility = 'hidden !important';
@@ -2023,7 +2023,7 @@ class YouTubeBrainrotSplitter {
         let foundVisible = 0;
         overlays.forEach(overlay => {
           if (overlay.style.display !== 'none' || overlay.style.visibility !== 'hidden') {
-            console.log('⏰ PERIODIC found visible overlay:', overlay.className);
+            console.log('⏰ PERIODIC found visible overlay:', overlay.className || overlay.classList.toString());
             overlay.style.display = 'none !important';
             overlay.style.visibility = 'hidden !important';
             overlay.style.pointerEvents = 'none !important';
