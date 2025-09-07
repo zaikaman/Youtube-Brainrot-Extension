@@ -58,10 +58,13 @@ body.brainrot-split-active .ytp-chrome-bottom,
 body.brainrot-split-active .ytp-gradient-top,
 body.brainrot-split-active .ytp-gradient-bottom,
 body.brainrot-split-active .ytp-chrome-controls,
-body.brainrot-split-active .ytp-progress-bar-container {
+body.brainrot-split-active .ytp-progress-bar-container,
+body.brainrot-split-active .ytp-pause-overlay,
+body.brainrot-split-active .ytp-spinner {
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
+  visibility: hidden !important;
   transition: opacity 0.2s ease !important;
 }
 
