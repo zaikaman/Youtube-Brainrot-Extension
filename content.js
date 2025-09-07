@@ -304,7 +304,7 @@ class YouTubeBrainrotSplitter {
           border-radius: 0 !important;
           vertical-align: top !important;
           position: relative !important;
-          transform: translateY(-2px) !important;
+          transform: translateY(-1px) !important;
         `;
         
         // Add hover effect
