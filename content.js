@@ -2137,15 +2137,15 @@ class YouTubeBrainrotSplitter {
   }
 
   cleanupStuckOverlays() {
-    console.log('🧹 Starting comprehensive overlay cleanup...');
+    console.log('🧹 Starting gentle overlay cleanup...');
     
-    // Try multiple approaches to clear stuck overlays
+    // Try gentle approaches only - nuclear was too destructive
     this.findAndRemoveBlackOverlays();
-    this.triggerVideoRefresh();
-    this.triggerFullscreenClearTrick();
     
-    // Nuclear option: Force recreate problematic container
-    this.forceRecreatePlayerContainer();
+    // Skip nuclear approaches for now
+    // this.triggerVideoRefresh();
+    // this.triggerFullscreenClearTrick(); 
+    // this.forceRecreatePlayerContainer();
     
     // Debug scan when cleanup is called
     this.debugScanAllOverlays();
@@ -2346,23 +2346,22 @@ class YouTubeBrainrotSplitter {
               'size:', `${Math.round(rect.width)}x${Math.round(rect.height)}`
             );
             
-            // More aggressive removal criteria - any large element that could be blocking
+            // Instead of removing, push overlays behind video
             const hasNoBackground = bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent';
             const hasBlackBackground = bgColor === 'rgb(0, 0, 0)' || bgColor === 'rgba(0, 0, 0, 1)';
             const isLargeAndSuspicious = rect.width > 500 && rect.height > 400;
             const hasHighZIndex = zIndex > 10;
             const isTransparent = opacity < 1;
             
-            // Remove if it looks like any kind of overlay
+            // Push behind video instead of removing completely
             if (hasNoBackground || hasBlackBackground || isLargeAndSuspicious || hasHighZIndex || isTransparent) {
-              console.log('🖤 Removing potential overlay:', element.tagName, element.className || 'none', 
+              console.log('🔙 Pushing overlay behind video:', element.tagName, element.className || 'none', 
                 'reason:', hasBlackBackground ? 'black' : hasNoBackground ? 'transparent' : 
                 isLargeAndSuspicious ? 'large' : hasHighZIndex ? 'highZ' : 'lowOpacity');
               
-              element.style.display = 'none !important';
-              element.style.visibility = 'hidden !important';
+              // Push behind video instead of hiding
+              element.style.zIndex = '-1 !important';
               element.style.pointerEvents = 'none !important';
-              element.style.opacity = '0 !important';
               removedCount++;
             }
           }

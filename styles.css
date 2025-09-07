@@ -79,6 +79,7 @@ body.brainrot-split-active .ytp-iv-video-content {
 body.brainrot-split-active .video-stream.html5-main-video {
   position: static !important;
   pointer-events: auto !important;
+  z-index: 1 !important;
 }
 
 /* Force show controls when they have the visible class */
