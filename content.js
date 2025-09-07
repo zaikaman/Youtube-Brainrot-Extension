@@ -1945,7 +1945,7 @@ class YouTubeBrainrotSplitter {
     });
     
     // Now target specific known YouTube overlays + suspected overlay elements + potential black overlay
-    const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still, .video-stream.html5-main-video, .ytp-cards-teaser-box');
+    const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still, .video-stream.html5-main-video, .ytp-cards-teaser-box, .branding-context-container-outer, .ytp-iv-video-content');
     console.log('📋 Found existing YouTube overlays:', existingOverlays.length);
     let hiddenCount = 0;
     existingOverlays.forEach(overlay => {
@@ -2251,23 +2251,28 @@ class YouTubeBrainrotSplitter {
           
           // Log suspicious elements for debugging
           if (rect.width > 300 && rect.height > 300 && !isVideoElement) {
-            console.log('🔍 Large absolute element:', {
-              tag: element.tagName,
-              class: element.className || 'none',
-              bg: bgColor,
-              z: zIndex,
-              opacity: opacity,
-              size: `${Math.round(rect.width)}x${Math.round(rect.height)}`
-            });
+            console.log('🔍 Large absolute element:', 
+              element.tagName, 
+              element.className || 'none', 
+              'bg:', bgColor, 
+              'z:', zIndex, 
+              'opacity:', opacity, 
+              'size:', `${Math.round(rect.width)}x${Math.round(rect.height)}`
+            );
             
-            // Remove if it looks like an overlay
-            if (bgColor === 'rgb(0, 0, 0)' || 
-                bgColor === 'rgba(0, 0, 0, 1)' || 
-                bgColor === 'transparent' ||
-                zIndex > 50 ||
-                opacity < 1) {
+            // More aggressive removal criteria - any large element that could be blocking
+            const hasNoBackground = bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent';
+            const hasBlackBackground = bgColor === 'rgb(0, 0, 0)' || bgColor === 'rgba(0, 0, 0, 1)';
+            const isLargeAndSuspicious = rect.width > 500 && rect.height > 400;
+            const hasHighZIndex = zIndex > 10;
+            const isTransparent = opacity < 1;
+            
+            // Remove if it looks like any kind of overlay
+            if (hasNoBackground || hasBlackBackground || isLargeAndSuspicious || hasHighZIndex || isTransparent) {
+              console.log('🖤 Removing potential overlay:', element.tagName, element.className || 'none', 
+                'reason:', hasBlackBackground ? 'black' : hasNoBackground ? 'transparent' : 
+                isLargeAndSuspicious ? 'large' : hasHighZIndex ? 'highZ' : 'lowOpacity');
               
-              console.log('🖤 Removing potential overlay:', element.className || element.tagName);
               element.style.display = 'none !important';
               element.style.visibility = 'hidden !important';
               element.style.pointerEvents = 'none !important';
