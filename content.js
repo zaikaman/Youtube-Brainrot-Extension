@@ -410,6 +410,9 @@ class YouTubeBrainrotSplitter {
     this.preventAutoDeactivate = true; // Prevent auto-deactivation during setup
     this.userManuallyExited = false; // Reset manual exit flag
 
+    // Start monitoring for overlay creation
+    this.startOverlayMonitoring();
+
     // No need to exit fullscreen since we're working with theater mode
     // Apply our custom layout directly
     this.applyCustomLayout();
@@ -837,6 +840,9 @@ class YouTubeBrainrotSplitter {
     this.isActive = false;
     this.preventAutoDeactivate = false; // Reset flag
     
+    // Stop overlay monitoring
+    this.stopOverlayMonitoring();
+    
     // Do targeted cleanup for stuck overlays only, avoiding aggressive cleanup that causes black screen
     this.cleanupStuckOverlays();
     
@@ -860,6 +866,12 @@ class YouTubeBrainrotSplitter {
     if (this.mutationObserver) {
       this.mutationObserver.disconnect();
       this.mutationObserver = null;
+    }
+    
+    // Clear overlay observer if exists
+    if (this.overlayObserver) {
+      this.overlayObserver.disconnect();
+      this.overlayObserver = null;
     }
 
     // Remove brainrot container
@@ -1910,6 +1922,63 @@ class YouTubeBrainrotSplitter {
 
     // Add to body
     document.body.appendChild(this.restoreBtn);
+  }
+
+  startOverlayMonitoring() {
+    // Monitor for overlay creation and prevent them
+    this.overlayObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList' && this.isActive) {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // Check if this is a YouTube overlay
+              if (node.classList && (
+                node.classList.contains('ytp-pause-overlay') ||
+                node.classList.contains('ytp-spinner') ||
+                node.classList.contains('ytp-gradient-bottom') ||
+                node.classList.contains('ytp-gradient-top') ||
+                node.matches('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top')
+              )) {
+                console.log('Detected overlay creation:', node.className, node);
+                // Immediately hide it
+                node.style.display = 'none !important';
+                node.style.visibility = 'hidden !important';
+                node.style.pointerEvents = 'none !important';
+                node.style.opacity = '0 !important';
+              }
+              
+              // Also check child elements
+              const overlayChildren = node.querySelectorAll && node.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top');
+              if (overlayChildren) {
+                overlayChildren.forEach(overlay => {
+                  console.log('Detected child overlay creation:', overlay.className, overlay);
+                  overlay.style.display = 'none !important';
+                  overlay.style.visibility = 'hidden !important';
+                  overlay.style.pointerEvents = 'none !important';
+                  overlay.style.opacity = '0 !important';
+                });
+              }
+            }
+          });
+        }
+      });
+    });
+    
+    // Observe the entire movie player for overlay creation
+    const moviePlayer = document.querySelector('#movie_player');
+    if (moviePlayer) {
+      this.overlayObserver.observe(moviePlayer, {
+        childList: true,
+        subtree: true
+      });
+    }
+  }
+
+  stopOverlayMonitoring() {
+    if (this.overlayObserver) {
+      this.overlayObserver.disconnect();
+      this.overlayObserver = null;
+    }
   }
 
   cleanupStuckOverlays() {
