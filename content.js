@@ -22,7 +22,6 @@ class YouTubeBrainrotSplitter {
     this.isYouTube = this.currentDomain.includes('youtube.com');
     this.isFullstack = this.currentDomain.includes('fullstack.edu.vn');
     
-    console.log(`brainrot: Detected domain: ${this.currentDomain}, isYouTube: ${this.isYouTube}, isFullstack: ${this.isFullstack}`);
     
     this.init();
   }
@@ -91,7 +90,7 @@ class YouTubeBrainrotSplitter {
       });
     } catch (error) {
       // Extension context may be invalidated, continue without background communication
-      console.log('Background script communication unavailable');
+      // Extension context may be invalidated, continue without background communication
     }
 
     // Create custom Split Mode button
@@ -103,7 +102,6 @@ class YouTubeBrainrotSplitter {
 
   initFullstack() {
     // Fullstack.edu.vn specific initialization - play video based
-    console.log('brainrot: Initializing for Fullstack.edu.vn');
     
     // Setup escape handlers for Fullstack
     this.setupEscapeHandlers();
@@ -122,7 +120,6 @@ class YouTubeBrainrotSplitter {
   setupEscapeHandlers() {
     // Handle Escape key to always restore layout when active (capture phase)
     this.escapeHandler = (e) => {
-      console.log('brainrot: Key pressed:', e.key, 'isActive:', this.isActive);
       if ((e.key === 'Escape' || e.key === 'Esc' || e.key === 'f' || e.key === 'F')) {
         // Check if we have split screen elements present instead of just isActive flag
         const hasSplitElements = document.querySelector('.brainrot-container') || 
@@ -130,7 +127,6 @@ class YouTubeBrainrotSplitter {
                                  document.body.classList.contains('brainrot-split-active');
         
         if (this.isActive || hasSplitElements) {
-          console.log('brainrot: Deactivating split screen via key:', e.key);
           e.preventDefault();
           e.stopPropagation();
           // Force deactivation and mark as manually exited
@@ -155,7 +151,6 @@ class YouTubeBrainrotSplitter {
                                  document.body.classList.contains('brainrot-split-active');
         
         if (this.isActive || hasSplitElements) {
-          console.log('brainrot: Deactivating split screen via keyup:', e.key);
           e.preventDefault();
           e.stopPropagation();
           // Force deactivation and mark as manually exited
@@ -173,41 +168,33 @@ class YouTubeBrainrotSplitter {
   setupFullstackVideoListener() {
     // Listen for video play events on Fullstack.edu.vn
     const handleVideoPlay = (e) => {
-      console.log('brainrot: Video play event detected:', e.target);
       if (e.target.tagName === 'VIDEO' && !this.isActive) {
-        console.log('brainrot: Video play detected on Fullstack.edu.vn - activating split screen');
         this.activateSplitScreen();
       } else {
-        console.log('brainrot: Video play event but conditions not met. tagName:', e.target.tagName, 'isActive:', this.isActive);
       }
     };
 
-    console.log('brainrot: Setting up video listeners for Fullstack.edu.vn');
     
     // Add event listener for video play
     document.addEventListener('play', handleVideoPlay, true);
     
     // Also listen for click events on video elements and YouTube iframes
     document.addEventListener('click', (e) => {
-      console.log('brainrot: Click detected on:', e.target);
       
       // Check if clicked on YouTube iframe or its container
       const youtubeIframe = e.target.closest('iframe[src*="youtube.com"], iframe[src*="youtu.be"]') ||
                            document.querySelector('iframe[src*="youtube.com"], iframe[src*="youtu.be"]');
       
       if (youtubeIframe && !this.isActive) {
-        console.log('brainrot: YouTube iframe detected on Fullstack.edu.vn - activating split screen');
         setTimeout(() => this.activateSplitScreen(), 500);
         return;
       }
       
       // Original video logic
       if (e.target.tagName === 'VIDEO' || e.target.closest('video')) {
-        console.log('brainrot: Video click detected:', e.target);
         setTimeout(() => {
           const video = e.target.tagName === 'VIDEO' ? e.target : e.target.closest('video');
           if (video && !video.paused && !this.isActive) {
-            console.log('brainrot: Video is playing after click - activating split screen');
             this.activateSplitScreen();
           }
         }, 100);
@@ -230,38 +217,25 @@ class YouTubeBrainrotSplitter {
 
   checkForFullstackVideos() {
     // Check for existing playing videos
-    console.log('brainrot: Checking for Fullstack videos...');
     const videos = document.querySelectorAll('video');
-    console.log('brainrot: Found', videos.length, 'video elements');
     
     // Also check for YouTube iframes (common on Fullstack.edu.vn)
     const youtubeIframes = document.querySelectorAll('iframe[src*="youtube.com"], iframe[src*="youtu.be"]');
-    console.log('brainrot: Found', youtubeIframes.length, 'YouTube iframes');
     
     // Don't auto-activate if user manually exited
     if (this.userManuallyExited) {
-      console.log('brainrot: User manually exited, skipping auto-activation');
       return;
     }
     
     if (youtubeIframes.length > 0 && !this.isActive) {
-      console.log('brainrot: Found YouTube iframe on Fullstack.edu.vn - activating split screen');
       this.activateSplitScreen();
       return;
     }
     
     videos.forEach((video, index) => {
-      console.log(`brainrot: Video ${index}:`, {
-        paused: video.paused,
-        currentTime: video.currentTime,
-        duration: video.duration,
-        src: video.src,
-        hasListener: video.hasAttribute('data-brainrot-listener')
-      });
       
       if (!video.paused && !video.hasAttribute('data-brainrot-listener')) {
         video.setAttribute('data-brainrot-listener', 'true');
-        console.log('brainrot: Found playing video on Fullstack.edu.vn');
         if (!this.isActive) {
           this.activateSplitScreen();
         }
@@ -326,10 +300,8 @@ class YouTubeBrainrotSplitter {
           e.preventDefault();
           e.stopPropagation();
           
-          console.log('brainrot: Split Mode button clicked, isActive:', this.isActive);
           
           if (!this.isActive) {
-            console.log('brainrot: Activating split mode');
             this.userManuallyExited = false;
             this.activateSplitScreen();
             // Update button appearance
@@ -342,7 +314,6 @@ class YouTubeBrainrotSplitter {
               </svg>
             `;
           } else {
-            console.log('brainrot: Deactivating split mode');
             this.userManuallyExited = true;
             this.deactivateSplitScreen();
             // Reset button appearance
@@ -363,16 +334,12 @@ class YouTubeBrainrotSplitter {
         // Try to insert before fullscreen button, fallback to before settings, then append
         if (fullscreenBtn) {
           rightControls.insertBefore(splitBtn, fullscreenBtn);
-          console.log('brainrot: Split Mode button inserted before fullscreen button');
         } else if (settingsBtn) {
           rightControls.insertBefore(splitBtn, settingsBtn);
-          console.log('brainrot: Split Mode button inserted before settings button');
         } else {
           rightControls.appendChild(splitBtn);
-          console.log('brainrot: Split Mode button appended to right controls');
         }
         
-        console.log('brainrot: Split Mode button created and added to YouTube controls');
         this.splitModeBtn = splitBtn;
       }
     };
@@ -412,13 +379,12 @@ class YouTubeBrainrotSplitter {
       (document.querySelector('[theater]'))
     );
 
-    console.log('brainrot: Theater mode detected:', isTheaterMode, 'Split active:', this.isActive);
 
     // DISABLED: Only manual deactivation via Split Mode button allowed
     // Don't auto-deactivate split mode based on theater mode changes
     // Auto-deactivation is completely disabled via allowAutoDeactivate flag
     // if (!isTheaterMode && this.isActive && !this.preventAutoDeactivate && this.allowAutoDeactivate) {
-    //   console.log('brainrot: Deactivating split mode because left theater mode');
+    //   Deactivating split mode because left theater mode
     //   this.deactivateSplitScreen();
     // }
 
@@ -436,7 +402,6 @@ class YouTubeBrainrotSplitter {
   activateSplitScreen() {
     if (this.isActive) return;
 
-    console.log('Activating split screen mode');
     
     // Clean up any leftover state from previous activation
     this.cleanupState();
@@ -458,17 +423,15 @@ class YouTubeBrainrotSplitter {
         if (video && video.readyState >= 2) { // HAVE_CURRENT_DATA
           // Try to resume playback if it was interrupted
           if (video.paused && video.currentTime > 0) {
-            video.play().catch(e => console.log('Resume play failed:', e));
+            video.play().catch(() => {});
           }
         }
       } catch (e) {
-        console.log('Error checking video state:', e);
       }
     }, 1000); // Increased delay to ensure everything is settled
   }
 
   cleanupState() {
-    console.log('brainrot: Cleaning up state before activation');
     
     // Force cleanup any existing overlay elements that might be stuck
     const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top, .brainrot-overlay');
@@ -536,7 +499,6 @@ class YouTubeBrainrotSplitter {
       } catch (e) {}
     }
     
-    console.log('brainrot: State cleanup completed');
   }
 
   preventYouTubeInterference(videoElement) {
@@ -548,26 +510,22 @@ class YouTubeBrainrotSplitter {
     const originalPlay = videoElement.play;
     
     videoElement.pause = function() {
-      console.log('Video pause called - respecting user action');
       return originalPause.call(this);
     };
     
     videoElement.play = function() {
-      console.log('Video play called');
       return originalPlay.call(this);
     };
     
     // Monitor pause events but don't interfere with user actions
     videoElement.addEventListener('pause', (e) => {
-      console.log('Video paused event - user action or system pause');
       // Don't auto-resume if user manually paused
       if (this.userManuallypausedVideo) {
-        console.log('User manually paused - not interfering');
+        // User manually paused - not interfering
       }
     }, true);
     
     videoElement.addEventListener('play', (e) => {
-      console.log('Video play event detected');
       // Reset manual pause flag when video starts playing
       if (this.userManuallypausedVideo) {
         this.userManuallypausedVideo = false;
@@ -582,7 +540,6 @@ class YouTubeBrainrotSplitter {
           if (mutation.removedNodes) {
             for (let node of mutation.removedNodes) {
               if (node === videoElement) {
-                console.log('YouTube tried to move video back, preventing...');
                 // Re-append to our container
                 setTimeout(() => {
                   if (this.youtubeMovedContainer && this.isActive) {
@@ -618,11 +575,9 @@ class YouTubeBrainrotSplitter {
                            document.querySelector('.html5-video-player');
     
     if (!playerContainer) {
-      console.log('No player container found');
       return;
     }
 
-    console.log('Found player container:', playerContainer);
     this.originalVideoContainer = playerContainer;
 
     // Add split screen class to body
@@ -702,9 +657,8 @@ class YouTubeBrainrotSplitter {
             try {
               nativeVideo.currentTime = currentTime;
               nativeVideo.muted = wasMuted;
-              nativeVideo.play().catch(e => console.log('Play after move failed:', e));
+              nativeVideo.play().catch(() => {});
             } catch (e) {
-              console.log('Error restoring video state:', e);
             }
           }, 100);
         }
@@ -716,7 +670,6 @@ class YouTubeBrainrotSplitter {
             // Only ensure video element stays in our container
             // Don't auto-resume paused videos - let user control play/pause
             if (nativeVideo.parentElement !== this.youtubeMovedContainer) {
-              console.log('Video element moved back by YouTube, re-moving...');
               this.youtubeMovedContainer.appendChild(nativeVideo);
               nativeVideo.currentTime = currentTime;
               // Don't auto-play when re-moving, respect current pause state
@@ -766,7 +719,6 @@ class YouTubeBrainrotSplitter {
 
         this.movedViaStream = false; // We're moving the actual video, not using stream
         
-        console.log('brainrot: Moved native video element to left container');
       } catch (err) {
         console.error('Error moving native video:', err);
         // Fallback: just style the native video in place
@@ -838,9 +790,7 @@ class YouTubeBrainrotSplitter {
         }
       });
       
-      console.log('brainrot: restoreBtn created');
       this.restoreBtn.addEventListener('click', (e) => {
-        console.log('brainrot: restoreBtn clicked');
         e.preventDefault();
         e.stopPropagation();
         
@@ -850,13 +800,11 @@ class YouTubeBrainrotSplitter {
                                  document.body.classList.contains('brainrot-split-active');
         
         if (this.isActive || hasSplitElements) {
-          console.log('brainrot: Force deactivating via restoreBtn');
           this.isActive = true; // Ensure isActive is true so deactivate will run
           this.preventAutoDeactivate = false;
           this.userManuallyExited = true; // Prevent re-activation
           this.deactivateSplitScreen();
         } else {
-          console.log('brainrot: No split screen elements found to deactivate');
         }
       });
       
@@ -865,7 +813,6 @@ class YouTubeBrainrotSplitter {
         try {
           if (this.restoreBtn && document.body && this.restoreBtn instanceof Node) {
             document.body.appendChild(this.restoreBtn);
-            console.log('brainrot: restoreBtn added to DOM');
           } else {
             console.error('brainrot: Cannot add restoreBtn - validation failed', {
               hasButton: !!this.restoreBtn,
@@ -886,25 +833,20 @@ class YouTubeBrainrotSplitter {
   // Also set up a global mouse watcher as a fallback so hover works even if element listeners fail
   try { this._setupGlobalHoverWatcher(); } catch (e) {}
 
-    console.log('Custom layout applied');
   }
 
   deactivateSplitScreen() {
-    console.log('brainrot: deactivateSplitScreen() called - Stack trace:', new Error().stack);
     
     if (!this.isActive) {
-      console.log('brainrot: Split screen is not active, nothing to deactivate');
       return;
     }
 
-    console.log('Deactivating split screen mode');
     this.isActive = false;
     this.preventAutoDeactivate = false; // Reset flag
     
     // Reset manual exit flag after some time to allow re-activation
     if (this.userManuallyExited) {
       setTimeout(() => {
-        console.log('brainrot: Resetting userManuallyExited flag');
         this.userManuallyExited = false;
       }, 3000); // 3 seconds
     }
@@ -1008,10 +950,9 @@ class YouTubeBrainrotSplitter {
               movedVideo.currentTime = currentTime;
               movedVideo.muted = wasMuted;
               if (wasPlaying) {
-                movedVideo.play().catch(e => console.log('Play after restore failed:', e));
+                movedVideo.play().catch(() => {});
               }
             } catch (e) {
-              console.log('Error restoring video state on deactivate:', e);
             }
           }, 100);
           
@@ -1117,13 +1058,11 @@ class YouTubeBrainrotSplitter {
           player.style.removeProperty('pointer-events');
         }
         
-        console.log('brainrot: Final cleanup completed');
       } catch (e) {
         console.error('Error in final cleanup:', e);
       }
     }, 500); // Delay to ensure everything is settled
 
-    console.log('Split screen deactivated');
   }
 
   exitYouTubeMode() {
@@ -1143,32 +1082,26 @@ class YouTubeBrainrotSplitter {
           this.userManuallyExited = true;
           try { 
             theaterBtn.click(); 
-            console.log('brainrot: Exited theater mode via button click');
           } catch (e) {}
         }
       }
     } catch (e) {
-      console.log('brainrot: Could not exit theater mode:', e);
     }
   }
 
   exitFullstackMode() {
     // For Fullstack.edu.vn - restore iframe to original position
     try {
-      console.log('brainrot: Exiting split mode on Fullstack.edu.vn');
       
       // Find and restore YouTube iframe
       const youtubeIframe = document.querySelector('iframe[src*="youtube.com"], iframe[src*="youtu.be"]');
       if (youtubeIframe) {
         // Remove our custom styles to restore original iframe position
         youtubeIframe.removeAttribute('style');
-        console.log('brainrot: Restored YouTube iframe styles');
       }
       
       // Don't need to do anything special for videos since they're in iframe
-      console.log('brainrot: Fullstack exit complete');
     } catch (e) {
-      console.log('brainrot: Error in exitFullstackMode:', e);
     }
   }
 
@@ -1216,7 +1149,6 @@ class YouTubeBrainrotSplitter {
 
     // Try to play immediately
     this.brainrotVideo.play().catch(error => {
-      console.log('Autoplay failed, will try after user interaction:', error);
     });
 
     // Create click overlay for fallback if autoplay fails
@@ -1307,7 +1239,6 @@ class YouTubeBrainrotSplitter {
 
     this._hoverEnter = () => {
       try {
-        console.log('brainrot: hoverEnter triggered');
         
         // Create controls overlay if we have moved container
         if (this.youtubeMovedContainer && !this.controlsOverlay) {
@@ -1329,7 +1260,6 @@ class YouTubeBrainrotSplitter {
 
     this._hoverLeave = () => {
       try {
-        console.log('brainrot: hoverLeave triggered');
         
         // Hide controls overlay
         if (this.controlsOverlay) {
@@ -1388,13 +1318,11 @@ class YouTubeBrainrotSplitter {
         if (isInLeftArea) {
           if (!this._globalInsideLeft) {
             this._globalInsideLeft = true;
-            console.log('brainrot: globalWatcher enter left');
             this._hoverEnter && this._hoverEnter();
           }
         } else {
           if (this._globalInsideLeft) {
             this._globalInsideLeft = false;
-            console.log('brainrot: globalWatcher leave left');
             this._hoverLeave && this._hoverLeave();
           }
         }
@@ -1475,7 +1403,6 @@ class YouTubeBrainrotSplitter {
   // Restore YouTube controls to their original state
   _restoreYTControls() {
     try {
-      console.log('brainrot: Restoring YouTube controls to original state');
       
       // Remove all our custom style overrides
       const selectors = [
@@ -1510,7 +1437,6 @@ class YouTubeBrainrotSplitter {
         } catch (e) {}
       }
       
-      console.log('brainrot: YouTube controls restored');
     } catch (e) {
       console.error('Error restoring YT controls:', e);
     }
@@ -1551,7 +1477,6 @@ class YouTubeBrainrotSplitter {
           el.style.setProperty('z-index', '2147483682', 'important');
         });
         
-        console.log('brainrot: Force showed YT controls');
       }
     } catch (e) {
       console.error('Error force showing YT controls:', e);
@@ -1621,14 +1546,12 @@ class YouTubeBrainrotSplitter {
           
           if (video) {
             if (video.paused) {
-              console.log('User clicked play button - resuming video');
               video.play().then(() => {
                 playBtn.innerHTML = '⏸️';
               }).catch(e => {
                 console.error('Play failed:', e);
               });
             } else {
-              console.log('User clicked pause button - pausing video');
               video.pause();
               playBtn.innerHTML = '▶️';
               // Mark that user manually paused to prevent auto-resume
@@ -1746,7 +1669,6 @@ class YouTubeBrainrotSplitter {
             // Update button states and detect user pause via YouTube controls
             if (video.paused && playBtn.innerHTML === '⏸️') {
               // Video was paused but our button still shows pause - user paused via YouTube controls
-              console.log('Detected user pause via YouTube controls');
               this.userManuallypausedVideo = true;
               setTimeout(() => {
                 this.userManuallypausedVideo = false;
@@ -1797,7 +1719,6 @@ class YouTubeBrainrotSplitter {
       this.controlsOverlay.appendChild(bottomControls);
       this.youtubeMovedContainer.appendChild(this.controlsOverlay);
 
-      console.log('brainrot: Created controls overlay at bottom');
     } catch (e) {
       console.error('Error creating controls overlay:', e);
     }
@@ -1826,7 +1747,6 @@ class YouTubeBrainrotSplitter {
               cloneVideo.currentTime = originalVideo.currentTime;
             }
           } catch (e) {
-            console.log('Sync error:', e);
           }
         });
       });
@@ -1851,7 +1771,6 @@ class YouTubeBrainrotSplitter {
         } catch (e) {}
       }, 500);
 
-      console.log('brainrot: Video sync setup complete');
     } catch (e) {
       console.error('Error setting up video sync:', e);
     }
@@ -1933,16 +1852,13 @@ class YouTubeBrainrotSplitter {
   }
 
   applyFullstackLayout() {
-    console.log('Applying Fullstack.edu.vn layout');
     
     // Find YouTube iframe
     const youtubeIframe = document.querySelector('iframe[src*="youtube.com"], iframe[src*="youtu.be"]');
     if (!youtubeIframe) {
-      console.log('No YouTube iframe found on Fullstack');
       return;
     }
 
-    console.log('Found YouTube iframe:', youtubeIframe);
     
     // Add split screen class to body
     document.body.classList.add('brainrot-split-active');
@@ -1970,11 +1886,9 @@ class YouTubeBrainrotSplitter {
     // Ensure exit button is created for Fullstack
     this.createExitButton();
 
-    console.log('Fullstack layout applied');
   }
 
   createExitButton() {
-    console.log('brainrot: Creating exit button for Fullstack');
     
     // Remove existing button if any
     if (this.restoreBtn) {
@@ -2026,8 +1940,6 @@ class YouTubeBrainrotSplitter {
 
     // Add click handler
     this.restoreBtn.addEventListener('click', (e) => {
-      console.log('brainrot: Exit button clicked');
-      console.log('brainrot: Current isActive:', this.isActive);
       e.preventDefault();
       e.stopPropagation();
       
@@ -2036,14 +1948,11 @@ class YouTubeBrainrotSplitter {
       this.userManuallyExited = true;
       this.preventAutoDeactivate = false;
       
-      console.log('brainrot: About to call deactivateSplitScreen');
       this.deactivateSplitScreen();
-      console.log('brainrot: deactivateSplitScreen called');
     });
 
     // Add to body
     document.body.appendChild(this.restoreBtn);
-    console.log('brainrot: Exit button created and added to DOM');
   }
 
   destroy() {
