@@ -63,7 +63,11 @@ body.brainrot-split-active .ytp-pause-overlay,
 body.brainrot-split-active .ytp-spinner,
 body.brainrot-split-active .ytp-cued-thumbnail-overlay-image,
 body.brainrot-split-active .ytp-endscreen-content,
-body.brainrot-split-active .ytp-videowall-still {
+body.brainrot-split-active .ytp-videowall-still,
+body.brainrot-split-active .ytp-player-content.ytp-timely-actions-content,
+body.brainrot-split-active .ytp-caption-window-container,
+body.brainrot-split-active .ytp-player-content.ytp-iv-player-content,
+body.brainrot-split-active .ytp-iv-video-content {
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;

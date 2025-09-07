@@ -2058,7 +2058,8 @@ class YouTubeBrainrotSplitter {
     // Also periodically check for critical overlays as backup
     this.overlayCheckInterval = setInterval(() => {
       if (this.isActive) {
-        const overlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still, .video-stream.html5-main-video');
+        // Target known overlays + the problematic transparent overlays
+        const overlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-cued-thumbnail-overlay-image, .ytp-endscreen-content, .ytp-videowall-still, .video-stream.html5-main-video, .ytp-player-content.ytp-timely-actions-content, .ytp-caption-window-container, .ytp-player-content.ytp-iv-player-content, .ytp-iv-video-content');
         let foundVisible = 0;
         overlays.forEach(overlay => {
           // Special handling for video element
