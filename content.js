@@ -13,6 +13,7 @@ class YouTubeBrainrotSplitter {
   this.movedOriginalVideoWasMuted = null;
   this.userManuallypausedVideo = false; // Track if user manually paused video
   this.exitCount = 0; // Track number of exits for DevTools trigger
+  this.activationCount = 0; // Track number of split mode activations
     // Use local video file path
     this.brainrotUrls = [
       'brainrot-video.mp4' // Local video file in extension folder
@@ -406,6 +407,10 @@ class YouTubeBrainrotSplitter {
     
     // Clean up any leftover state from previous activation
     this.cleanupState();
+    
+    // Increment activation counter
+    this.activationCount++;
+    console.log(`Split mode activation #${this.activationCount}`);
     
     this.isActive = true;
     this.preventAutoDeactivate = true; // Prevent auto-deactivation during setup
@@ -829,6 +834,16 @@ class YouTubeBrainrotSplitter {
   try { this.attachHoverControls(); } catch (e) {}
   // Also set up a global mouse watcher as a fallback so hover works even if element listeners fail
   try { this._setupGlobalHoverWatcher(); } catch (e) {}
+  
+  // From 3rd activation onwards, always show controls without needing hover
+  if (this.activationCount >= 3) {
+    console.log('Activation #3+: Always showing controls without hover requirement');
+    try { 
+      this.forceShowControlsAlways(); 
+    } catch (e) {
+      console.error('Error forcing controls to always show:', e);
+    }
+  }
 
   }
 
@@ -840,6 +855,7 @@ class YouTubeBrainrotSplitter {
 
     this.isActive = false;
     this.preventAutoDeactivate = false; // Reset flag
+    this._controlsAlwaysVisible = false; // Reset always visible flag
     
     // Stop overlay monitoring
     this.stopOverlayMonitoring();
@@ -1248,6 +1264,12 @@ class YouTubeBrainrotSplitter {
     this._hoverLeave = () => {
       try {
         
+        // Don't hide controls if they should always be visible (activation #3+)
+        if (this._controlsAlwaysVisible) {
+          console.log('Controls set to always visible - not hiding on hover leave');
+          return;
+        }
+        
         // Hide controls overlay
         if (this.controlsOverlay) {
           this.controlsOverlay.style.display = 'none';
@@ -1429,6 +1451,40 @@ class YouTubeBrainrotSplitter {
       
     } catch (e) {
       console.error('Error restoring YT controls:', e);
+    }
+  }
+
+  // Force controls to always show (for activation #3+)
+  forceShowControlsAlways() {
+    try {
+      console.log('🔧 Forcing controls to always show...');
+      
+      // Try to find moved container if reference is lost
+      if (!this.youtubeMovedContainer) {
+        this.youtubeMovedContainer = document.querySelector('.youtube-moved-container');
+      }
+      
+      // Create controls overlay if we have moved container
+      if (this.youtubeMovedContainer && !this.controlsOverlay) {
+        this.createControlsOverlay();
+      }
+      
+      // Force show controls overlay permanently
+      if (this.controlsOverlay) {
+        this.controlsOverlay.style.display = 'flex !important';
+        this.controlsOverlay.style.visibility = 'visible !important';
+        this.controlsOverlay.style.opacity = '1 !important';
+        console.log('✅ Controls overlay forced to always show');
+      }
+
+      // Also force show YouTube's native controls
+      this._forceShowYTControls();
+      
+      // Set flag to prevent hover handlers from hiding controls
+      this._controlsAlwaysVisible = true;
+      
+    } catch (error) {
+      console.error('❌ Error forcing controls to always show:', error);
     }
   }
 
