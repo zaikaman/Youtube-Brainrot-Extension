@@ -1931,18 +1931,23 @@ class YouTubeBrainrotSplitter {
   }
 
   startOverlayMonitoring() {
-    console.log('Starting overlay monitoring...');
+    console.log('🔍 Starting overlay monitoring...');
     
-    // First, find and hide any existing overlays
-    const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top, [class*="overlay"], [class*="spinner"]');
-    console.log('Found existing overlays:', existingOverlays.length, existingOverlays);
+    // First, find and hide any existing overlays - only target specific YouTube overlays
+    const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner');
+    console.log('📋 Found existing YouTube overlays:', existingOverlays.length);
+    let hiddenCount = 0;
     existingOverlays.forEach(overlay => {
-      console.log('Hiding existing overlay:', overlay.className, overlay);
-      overlay.style.display = 'none !important';
-      overlay.style.visibility = 'hidden !important';
-      overlay.style.pointerEvents = 'none !important';
-      overlay.style.opacity = '0 !important';
+      if (overlay.style.display !== 'none') {
+        console.log('🚫 Hiding overlay:', overlay.className);
+        overlay.style.display = 'none !important';
+        overlay.style.visibility = 'hidden !important';
+        overlay.style.pointerEvents = 'none !important';
+        overlay.style.opacity = '0 !important';
+        hiddenCount++;
+      }
     });
+    if (hiddenCount > 0) console.log('✅ Hidden', hiddenCount, 'existing overlays');
     
     // Monitor for both DOM changes AND attribute changes (style changes)
     this.overlayObserver = new MutationObserver((mutations) => {
@@ -1952,16 +1957,12 @@ class YouTubeBrainrotSplitter {
           if (mutation.type === 'childList') {
             mutation.addedNodes.forEach((node) => {
               if (node.nodeType === Node.ELEMENT_NODE) {
-                // Check if this is a YouTube overlay
+                // Check if this is a critical YouTube overlay only
                 if (node.classList && (
                   node.classList.contains('ytp-pause-overlay') ||
-                  node.classList.contains('ytp-spinner') ||
-                  node.classList.contains('ytp-gradient-bottom') ||
-                  node.classList.contains('ytp-gradient-top') ||
-                  node.className.includes('overlay') ||
-                  node.className.includes('spinner')
+                  node.classList.contains('ytp-spinner')
                 )) {
-                  console.log('Detected new overlay element:', node.className, node);
+                  console.log('🆕 NEW overlay element:', node.className);
                   // Immediately hide it
                   node.style.display = 'none !important';
                   node.style.visibility = 'hidden !important';
@@ -1969,11 +1970,11 @@ class YouTubeBrainrotSplitter {
                   node.style.opacity = '0 !important';
                 }
                 
-                // Also check child elements
-                const overlayChildren = node.querySelectorAll && node.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top, [class*="overlay"], [class*="spinner"]');
+                // Also check child elements for critical overlays only
+                const overlayChildren = node.querySelectorAll && node.querySelectorAll('.ytp-pause-overlay, .ytp-spinner');
                 if (overlayChildren && overlayChildren.length > 0) {
                   overlayChildren.forEach(overlay => {
-                    console.log('Detected new child overlay:', overlay.className, overlay);
+                    console.log('🆕 NEW child overlay:', overlay.className);
                     overlay.style.display = 'none !important';
                     overlay.style.visibility = 'hidden !important';
                     overlay.style.pointerEvents = 'none !important';
@@ -1985,17 +1986,13 @@ class YouTubeBrainrotSplitter {
           }
           
           // Monitor attribute changes (like style changes that make overlays visible)
-          if (mutation.type === 'attributes' && (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
             const target = mutation.target;
             if (target.classList && (
               target.classList.contains('ytp-pause-overlay') ||
-              target.classList.contains('ytp-spinner') ||
-              target.classList.contains('ytp-gradient-bottom') ||
-              target.classList.contains('ytp-gradient-top') ||
-              target.className.includes('overlay') ||
-              target.className.includes('spinner')
+              target.classList.contains('ytp-spinner')
             )) {
-              console.log('Detected overlay style/class change:', target.className, target, 'style:', target.style.cssText);
+              console.log('🔄 STYLE change on overlay:', target.className);
               // Force hide it again
               target.style.display = 'none !important';
               target.style.visibility = 'hidden !important';
@@ -2019,25 +2016,28 @@ class YouTubeBrainrotSplitter {
       console.log('Started observing movie player for overlay changes');
     }
     
-    // Also periodically check for overlays as backup
+    // Also periodically check for critical overlays as backup
     this.overlayCheckInterval = setInterval(() => {
       if (this.isActive) {
-        const overlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top, [class*="overlay"], [class*="spinner"]');
+        const overlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner');
+        let foundVisible = 0;
         overlays.forEach(overlay => {
           if (overlay.style.display !== 'none' || overlay.style.visibility !== 'hidden') {
-            console.log('Periodic check found visible overlay:', overlay.className, overlay);
+            console.log('⏰ PERIODIC found visible overlay:', overlay.className);
             overlay.style.display = 'none !important';
             overlay.style.visibility = 'hidden !important';
             overlay.style.pointerEvents = 'none !important';
             overlay.style.opacity = '0 !important';
+            foundVisible++;
           }
         });
+        if (foundVisible > 0) console.log('⚡ Fixed', foundVisible, 'visible overlays');
       }
-    }, 500); // Check every 500ms
+    }, 1000); // Check every 1 second (reduced frequency)
   }
 
   stopOverlayMonitoring() {
-    console.log('Stopping overlay monitoring...');
+    console.log('🛑 Stopping overlay monitoring...');
     if (this.overlayObserver) {
       this.overlayObserver.disconnect();
       this.overlayObserver = null;
