@@ -2143,12 +2143,17 @@ class YouTubeBrainrotSplitter {
     this.exitCount++;
     console.log(`🔢 Exit count: ${this.exitCount}`);
     
-    // Only trigger DevTools from 2nd exit onwards (when overlay appears)
+    // Only trigger fixes from 2nd exit onwards (when overlay appears)
     if (this.exitCount >= 2) {
-      console.log('🛠️ Auto-triggering DevTools to fix overlay...');
+      console.log('🛠️ Auto-triggering fixes to clear overlay...');
       this.autoToggleDevTools();
+      
+      // Backup approach: Auto fullscreen toggle (user said this works)
+      setTimeout(() => {
+        this.autoFullscreenToggle();
+      }, 200);
     } else {
-      console.log('🧹 First exit - no DevTools trigger needed');
+      console.log('🧹 First exit - no fixes needed');
     }
     
     // Debug scan
@@ -2157,47 +2162,111 @@ class YouTubeBrainrotSplitter {
 
   autoToggleDevTools() {
     try {
-      console.log('🔧 Auto-opening DevTools...');
+      console.log('🔄 Simulating DevTools effects (window resize + focus changes)...');
       
-      // Method 1: Dispatch F12 key event
-      const f12Event = new KeyboardEvent('keydown', {
-        key: 'F12',
-        code: 'F12',
-        keyCode: 123,
-        which: 123,
-        bubbles: true,
-        cancelable: true
+      // Method 1: Simulate window resize (what happens when DevTools opens/closes)
+      const originalWidth = window.innerWidth;
+      const originalHeight = window.innerHeight;
+      
+      // Trigger resize events like DevTools would
+      Object.defineProperty(window, 'innerWidth', {
+        writable: true,
+        configurable: true,
+        value: originalWidth - 100
       });
-      document.dispatchEvent(f12Event);
+      Object.defineProperty(window, 'innerHeight', {
+        writable: true,
+        configurable: true, 
+        value: originalHeight - 200
+      });
       
-      // Method 2: Try Chrome DevTools API if available
-      if (window.chrome && window.chrome.runtime) {
-        try {
-          // This might work in some contexts
-          console.log('🔍 Trying Chrome DevTools API...');
-        } catch (e) {
-          console.log('Chrome API not available');
-        }
-      }
+      window.dispatchEvent(new Event('resize'));
       
-      // Method 3: Quick close after opening (simulate user behavior)
+      // Method 2: Focus/blur simulation (DevTools steals focus)
       setTimeout(() => {
-        console.log('🔧 Auto-closing DevTools...');
-        const f12CloseEvent = new KeyboardEvent('keydown', {
-          key: 'F12',
-          code: 'F12', 
-          keyCode: 123,
-          which: 123,
-          bubbles: true,
-          cancelable: true
-        });
-        document.dispatchEvent(f12CloseEvent);
+        window.dispatchEvent(new Event('blur'));
+        document.dispatchEvent(new Event('visibilitychange'));
         
-        console.log('✅ DevTools auto-toggle completed');
-      }, 100); // Quick 100ms toggle
+        setTimeout(() => {
+          // Restore original dimensions
+          Object.defineProperty(window, 'innerWidth', {
+            writable: true,
+            configurable: true,
+            value: originalWidth
+          });
+          Object.defineProperty(window, 'innerHeight', {
+            writable: true,
+            configurable: true,
+            value: originalHeight
+          });
+          
+          window.dispatchEvent(new Event('resize'));
+          window.dispatchEvent(new Event('focus'));
+          
+          console.log('✅ DevTools effects simulation completed');
+        }, 50);
+      }, 50);
       
     } catch (error) {
-      console.error('❌ Auto DevTools toggle failed:', error);
+      console.error('❌ DevTools simulation failed:', error);
+    }
+  }
+
+  autoFullscreenToggle() {
+    try {
+      console.log('🖥️ Auto fullscreen toggle...');
+      const video = document.querySelector('.video-stream.html5-main-video');
+      
+      if (video && video.requestFullscreen) {
+        // Enter fullscreen briefly
+        video.requestFullscreen().then(() => {
+          console.log('📺 Entered fullscreen');
+          
+          // Exit fullscreen quickly
+          setTimeout(() => {
+            if (document.exitFullscreen) {
+              document.exitFullscreen().then(() => {
+                console.log('✅ Auto fullscreen toggle completed');
+              }).catch(e => {
+                console.error('Exit fullscreen failed:', e);
+              });
+            }
+          }, 100); // Very brief fullscreen
+          
+        }).catch(e => {
+          console.error('Enter fullscreen failed:', e);
+          // Fallback: Try fullscreen events without actual fullscreen
+          this.simulateFullscreenEvents();
+        });
+      } else {
+        // Fallback: Just simulate the events
+        this.simulateFullscreenEvents();
+      }
+      
+    } catch (error) {
+      console.error('❌ Auto fullscreen failed:', error);
+    }
+  }
+
+  simulateFullscreenEvents() {
+    try {
+      console.log('🎭 Simulating fullscreen events...');
+      
+      // Dispatch fullscreen events
+      document.dispatchEvent(new Event('fullscreenchange'));
+      document.dispatchEvent(new Event('webkitfullscreenchange'));
+      document.dispatchEvent(new Event('mozfullscreenchange'));
+      
+      setTimeout(() => {
+        document.dispatchEvent(new Event('fullscreenchange'));
+        document.dispatchEvent(new Event('webkitfullscreenchange'));
+        document.dispatchEvent(new Event('mozfullscreenchange'));
+        
+        console.log('✅ Fullscreen events simulation completed');
+      }, 50);
+      
+    } catch (error) {
+      console.error('❌ Fullscreen events simulation failed:', error);
     }
   }
 
