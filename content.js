@@ -2136,11 +2136,45 @@ class YouTubeBrainrotSplitter {
   }
 
   cleanupStuckOverlays() {
-    // Try the fullscreen trick to clear stuck overlays
+    console.log('🧹 Starting comprehensive overlay cleanup...');
+    
+    // Try multiple approaches to clear stuck overlays
+    this.findAndRemoveBlackOverlays();
+    this.triggerVideoRefresh();
     this.triggerFullscreenClearTrick();
     
     // Debug scan when cleanup is called
     this.debugScanAllOverlays();
+  }
+
+  triggerVideoRefresh() {
+    try {
+      console.log('🔄 Triggering video refresh...');
+      const video = document.querySelector('.video-stream.html5-main-video');
+      const player = document.querySelector('#movie_player');
+      
+      if (video && player) {
+        // Force video to re-render by temporarily changing its style
+        const originalTransform = video.style.transform;
+        video.style.transform = 'translateZ(0)';
+        
+        // Trigger a reflow
+        video.offsetHeight;
+        
+        // Reset
+        setTimeout(() => {
+          video.style.transform = originalTransform;
+          video.style.position = 'static !important';
+          video.style.pointerEvents = 'auto !important';
+          console.log('✅ Video refresh completed');
+        }, 10);
+        
+        // Also try dispatching a resize event to trigger YouTube's layout recalc
+        window.dispatchEvent(new Event('resize'));
+      }
+    } catch (error) {
+      console.error('❌ Video refresh failed:', error);
+    }
   }
 
   triggerFullscreenClearTrick() {
@@ -2186,43 +2220,65 @@ class YouTubeBrainrotSplitter {
 
   findAndRemoveBlackOverlays() {
     try {
+      console.log('🔍 Scanning for black overlays...');
       const player = document.querySelector('#movie_player');
       if (!player) return;
       
-      // Look for elements that could be black overlays
+      // Look for elements that could be black overlays - be more aggressive
       const allElements = player.querySelectorAll('*');
       let removedCount = 0;
+      let checkedCount = 0;
       
       allElements.forEach(element => {
         const style = getComputedStyle(element);
         const rect = element.getBoundingClientRect();
         
-        // Check if element is large, positioned absolute, and potentially blocking
+        // Check if element is positioned absolute and potentially blocking
         if (style.position === 'absolute' && 
             style.display !== 'none' && 
-            rect.width > 200 && 
-            rect.height > 200) {
+            rect.width > 100 && 
+            rect.height > 100) {
           
+          checkedCount++;
           const bgColor = style.backgroundColor;
           const zIndex = parseInt(style.zIndex) || 0;
+          const opacity = parseFloat(style.opacity) || 1;
           
-          // Check if it's a black/dark overlay or has high z-index
-          if ((bgColor === 'rgb(0, 0, 0)' || bgColor === 'rgba(0, 0, 0, 1)' || zIndex > 100) &&
-              !element.classList.contains('video-stream') &&
-              !element.classList.contains('html5-main-video')) {
+          // More aggressive detection - any large absolute element that's not video
+          const isVideoElement = element.classList.contains('video-stream') || 
+                                element.classList.contains('html5-main-video') ||
+                                element.tagName === 'VIDEO';
+          
+          // Log suspicious elements for debugging
+          if (rect.width > 300 && rect.height > 300 && !isVideoElement) {
+            console.log('🔍 Large absolute element:', {
+              tag: element.tagName,
+              class: element.className || 'none',
+              bg: bgColor,
+              z: zIndex,
+              opacity: opacity,
+              size: `${Math.round(rect.width)}x${Math.round(rect.height)}`
+            });
             
-            console.log('🖤 Found potential black overlay:', element.className || element.tagName, 'bg:', bgColor, 'z:', zIndex);
-            element.style.display = 'none !important';
-            element.style.visibility = 'hidden !important';
-            element.style.pointerEvents = 'none !important';
-            removedCount++;
+            // Remove if it looks like an overlay
+            if (bgColor === 'rgb(0, 0, 0)' || 
+                bgColor === 'rgba(0, 0, 0, 1)' || 
+                bgColor === 'transparent' ||
+                zIndex > 50 ||
+                opacity < 1) {
+              
+              console.log('🖤 Removing potential overlay:', element.className || element.tagName);
+              element.style.display = 'none !important';
+              element.style.visibility = 'hidden !important';
+              element.style.pointerEvents = 'none !important';
+              element.style.opacity = '0 !important';
+              removedCount++;
+            }
           }
         }
       });
       
-      if (removedCount > 0) {
-        console.log('🗑️ Removed', removedCount, 'potential black overlays');
-      }
+      console.log(`🔍 Checked ${checkedCount} absolute elements, removed ${removedCount} overlays`);
     } catch (error) {
       console.error('❌ Black overlay scan failed:', error);
     }
