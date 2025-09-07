@@ -2144,8 +2144,50 @@ class YouTubeBrainrotSplitter {
     this.triggerVideoRefresh();
     this.triggerFullscreenClearTrick();
     
+    // Nuclear option: Force recreate problematic container
+    this.forceRecreatePlayerContainer();
+    
     // Debug scan when cleanup is called
     this.debugScanAllOverlays();
+  }
+
+  forceRecreatePlayerContainer() {
+    try {
+      console.log('☢️ Force recreating player container...');
+      const player = document.querySelector('#movie_player');
+      if (!player) return;
+      
+      // Store current video time and state
+      const video = player.querySelector('.video-stream.html5-main-video');
+      let currentTime = 0;
+      let isPaused = true;
+      
+      if (video) {
+        currentTime = video.currentTime || 0;
+        isPaused = video.paused;
+      }
+      
+      // Clone the player element (this removes all event listeners and inline styles)
+      const clonedPlayer = player.cloneNode(true);
+      
+      // Replace the original with the clone
+      player.parentNode.replaceChild(clonedPlayer, player);
+      
+      // Restore video state after a brief delay
+      setTimeout(() => {
+        const newVideo = clonedPlayer.querySelector('.video-stream.html5-main-video');
+        if (newVideo && currentTime > 0) {
+          newVideo.currentTime = currentTime;
+          if (!isPaused) {
+            newVideo.play().catch(() => {}); // Ignore autoplay errors
+          }
+        }
+        console.log('✅ Player container recreated');
+      }, 100);
+      
+    } catch (error) {
+      console.error('❌ Force recreate failed:', error);
+    }
   }
 
   triggerVideoRefresh() {
@@ -2155,6 +2197,12 @@ class YouTubeBrainrotSplitter {
       const player = document.querySelector('#movie_player');
       
       if (video && player) {
+        // Nuclear option: Force complete player reset
+        console.log('💣 Applying nuclear reset...');
+        
+        // Remove ALL inline styles from player and children
+        this.clearAllInlineStyles(player);
+        
         // Force video to re-render by temporarily changing its style
         const originalTransform = video.style.transform;
         video.style.transform = 'translateZ(0)';
@@ -2167,6 +2215,10 @@ class YouTubeBrainrotSplitter {
           video.style.transform = originalTransform;
           video.style.position = 'static !important';
           video.style.pointerEvents = 'auto !important';
+          
+          // Clear inline styles again after reset
+          this.clearAllInlineStyles(player);
+          
           console.log('✅ Video refresh completed');
         }, 10);
         
@@ -2175,6 +2227,39 @@ class YouTubeBrainrotSplitter {
       }
     } catch (error) {
       console.error('❌ Video refresh failed:', error);
+    }
+  }
+
+  clearAllInlineStyles(container) {
+    try {
+      console.log('🧹 Clearing all inline styles...');
+      let clearedCount = 0;
+      
+      // Clear styles from all elements in container
+      const allElements = container.querySelectorAll('*');
+      allElements.forEach(element => {
+        if (element.style && element.style.length > 0) {
+          // Don't clear video element styles (we need those)
+          if (!element.classList.contains('html5-main-video') && 
+              !element.classList.contains('video-stream')) {
+            
+            // Check if element has problematic styles
+            const computedStyle = getComputedStyle(element);
+            if (computedStyle.position === 'absolute' && 
+                computedStyle.backgroundColor === 'rgba(0, 0, 0, 0)' &&
+                element.getBoundingClientRect().width > 300) {
+              
+              console.log('🗑️ Clearing styles from:', element.tagName, element.className);
+              element.removeAttribute('style');
+              clearedCount++;
+            }
+          }
+        }
+      });
+      
+      console.log(`🧹 Cleared ${clearedCount} inline styles`);
+    } catch (error) {
+      console.error('❌ Clear styles failed:', error);
     }
   }
 
