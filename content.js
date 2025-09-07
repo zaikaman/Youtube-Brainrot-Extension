@@ -12,6 +12,7 @@ class YouTubeBrainrotSplitter {
   this.movedOriginalVideoElement = null;
   this.movedOriginalVideoWasMuted = null;
   this.userManuallypausedVideo = false; // Track if user manually paused video
+  this.hasExitedBefore = false; // Track if user has exited split mode before
     // Use local video file path
     this.brainrotUrls = [
       'brainrot-video.mp4' // Local video file in extension folder
@@ -844,6 +845,9 @@ class YouTubeBrainrotSplitter {
     this.isActive = false;
     this.preventAutoDeactivate = false; // Reset flag
     
+    // Do targeted cleanup for stuck overlays only, avoiding aggressive cleanup that causes black screen
+    this.cleanupStuckOverlays();
+    
     // Reset manual exit flag after some time to allow re-activation
     if (this.userManuallyExited) {
       setTimeout(() => {
@@ -1028,40 +1032,10 @@ class YouTubeBrainrotSplitter {
       `;
     }
 
-    // Final cleanup - remove any stuck overlays or elements
+    // Additional cleanup for any remaining stuck overlays
     setTimeout(() => {
-      try {
-        // Remove any remaining brainrot elements
-        const stuckElements = document.querySelectorAll('[class*="brainrot"], [data-brainrot-placeholder], .brainrot-video-placeholder');
-        stuckElements.forEach(el => {
-          try {
-            if (el !== this.splitModeBtn) { // Don't remove the split mode button
-              el.remove();
-            }
-          } catch (e) {}
-        });
-        
-        // Force clean any YouTube overlays that might be stuck
-        const stuckOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner');
-        stuckOverlays.forEach(overlay => {
-          try {
-            overlay.style.removeProperty('display');
-            overlay.style.removeProperty('visibility');
-            overlay.style.removeProperty('pointer-events');
-          } catch (e) {}
-        });
-        
-        // Ensure player container is fully visible
-        const player = document.querySelector('#movie_player');
-        if (player) {
-          player.style.removeProperty('visibility');
-          player.style.removeProperty('pointer-events');
-        }
-        
-      } catch (e) {
-        console.error('Error in final cleanup:', e);
-      }
-    }, 500); // Delay to ensure everything is settled
+      this.cleanupStuckOverlays();
+    }, 100);
 
   }
 
@@ -1953,6 +1927,70 @@ class YouTubeBrainrotSplitter {
 
     // Add to body
     document.body.appendChild(this.restoreBtn);
+  }
+
+  cleanupStuckOverlays() {
+    try {
+      // Only clean up overlays that have brainrot-hidden-overlay class (the stuck ones)
+      const stuckOverlays = document.querySelectorAll('.brainrot-hidden-overlay');
+      stuckOverlays.forEach(overlay => {
+        try {
+          overlay.style.removeProperty('display');
+          overlay.style.removeProperty('visibility');
+          overlay.style.removeProperty('pointer-events');
+          overlay.classList.remove('brainrot-hidden-overlay');
+        } catch (e) {}
+      });
+    } catch (e) {}
+  }
+
+  forceCleanupStuckElements() {
+    try {
+      // Remove any remaining brainrot elements
+      const stuckElements = document.querySelectorAll('[class*="brainrot"], [data-brainrot-placeholder], .brainrot-video-placeholder');
+      stuckElements.forEach(el => {
+        try {
+          if (el !== this.splitModeBtn) { // Don't remove the split mode button
+            el.remove();
+          }
+        } catch (e) {}
+      });
+      
+      // Force clean any YouTube overlays that might be stuck
+      const stuckOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .brainrot-hidden-overlay');
+      stuckOverlays.forEach(overlay => {
+        try {
+          overlay.style.removeProperty('display');
+          overlay.style.removeProperty('visibility');
+          overlay.style.removeProperty('pointer-events');
+          overlay.classList.remove('brainrot-hidden-overlay');
+        } catch (e) {}
+      });
+      
+      // Ensure player container is fully visible and clickable
+      const player = document.querySelector('#movie_player');
+      if (player) {
+        player.style.removeProperty('visibility');
+        player.style.removeProperty('pointer-events');
+        
+        // Also restore any child elements that might be hidden
+        const hiddenElements = player.querySelectorAll('.brainrot-hidden-overlay');
+        hiddenElements.forEach(el => {
+          try {
+            el.style.removeProperty('display');
+            el.style.removeProperty('visibility');
+            el.style.removeProperty('pointer-events');
+            el.classList.remove('brainrot-hidden-overlay');
+          } catch (e) {}
+        });
+      }
+      
+      // Force remove body class
+      document.body.classList.remove('brainrot-split-active');
+      
+    } catch (e) {
+      console.error('Error in force cleanup:', e);
+    }
   }
 
   destroy() {
