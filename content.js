@@ -12,7 +12,7 @@ class YouTubeBrainrotSplitter {
   this.movedOriginalVideoElement = null;
   this.movedOriginalVideoWasMuted = null;
   this.userManuallypausedVideo = false; // Track if user manually paused video
-  this.hasExitedBefore = false; // Track if user has exited split mode before
+  this.hiddenOverlaysState = new Map(); // Store original state of hidden overlays
     // Use local video file path
     this.brainrotUrls = [
       'brainrot-video.mp4' // Local video file in extension folder
@@ -475,6 +475,11 @@ class YouTubeBrainrotSplitter {
       this.videoStateMonitor = null;
     }
     
+    // Clear stored overlay states
+    if (this.hiddenOverlaysState) {
+      this.hiddenOverlaysState.clear();
+    }
+    
     // Remove any leftover classes from body
     document.body.classList.remove('brainrot-split-active');
     
@@ -707,6 +712,15 @@ class YouTubeBrainrotSplitter {
           const overlays = playerContainer.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top');
           overlays.forEach(overlay => {
             if (overlay) {
+              // Store original state
+              const originalState = {
+                display: overlay.style.display || '',
+                visibility: overlay.style.visibility || '',
+                pointerEvents: overlay.style.pointerEvents || ''
+              };
+              this.hiddenOverlaysState.set(overlay, originalState);
+              
+              // Hide overlay
               overlay.style.display = 'none !important';
               overlay.style.visibility = 'hidden !important';
               overlay.style.pointerEvents = 'none !important';
@@ -896,13 +910,24 @@ class YouTubeBrainrotSplitter {
         this.originalVideoContainer.style.visibility = 'visible';
         this.originalVideoContainer.style.pointerEvents = 'auto';
         
-        // Restore all overlay elements that we hid
+        // Restore all overlay elements that we hid using stored state
         const hiddenOverlays = this.originalVideoContainer.querySelectorAll('.brainrot-hidden-overlay');
         hiddenOverlays.forEach(overlay => {
           try {
-            overlay.style.removeProperty('display');
-            overlay.style.removeProperty('visibility');
-            overlay.style.removeProperty('pointer-events');
+            const originalState = this.hiddenOverlaysState.get(overlay);
+            if (originalState) {
+              // Restore original state
+              overlay.style.display = originalState.display;
+              overlay.style.visibility = originalState.visibility;
+              overlay.style.pointerEvents = originalState.pointerEvents;
+              // Remove from map
+              this.hiddenOverlaysState.delete(overlay);
+            } else {
+              // Fallback to removing properties
+              overlay.style.removeProperty('display');
+              overlay.style.removeProperty('visibility');
+              overlay.style.removeProperty('pointer-events');
+            }
             overlay.classList.remove('brainrot-hidden-overlay');
           } catch (e) {}
         });
@@ -1931,7 +1956,10 @@ class YouTubeBrainrotSplitter {
 
   cleanupStuckOverlays() {
     try {
-      // Only clean up overlays that have brainrot-hidden-overlay class (the stuck ones)
+      // Clear the stored state map to prevent memory leaks
+      this.hiddenOverlaysState.clear();
+      
+      // Clean up any remaining stuck overlays as fallback
       const stuckOverlays = document.querySelectorAll('.brainrot-hidden-overlay');
       stuckOverlays.forEach(overlay => {
         try {
