@@ -410,7 +410,8 @@ class YouTubeBrainrotSplitter {
     
     // Increment activation counter
     this.activationCount++;
-    console.log(`Split mode activation #${this.activationCount}`);
+    console.log(`🔄 Split mode activation #${this.activationCount}`);
+    console.log(`📊 Current state: isActive=${this.isActive}, controlsAlwaysVisible=${this._controlsAlwaysVisible}`);
     
     this.isActive = true;
     this.preventAutoDeactivate = true; // Prevent auto-deactivation during setup
@@ -837,28 +838,45 @@ class YouTubeBrainrotSplitter {
   
   // From 3rd activation onwards, always show controls without needing hover
   if (this.activationCount >= 3) {
-    console.log('Activation #3+: Always showing controls without hover requirement');
+    console.log(`🎯 Activation #${this.activationCount} (>=3): Always showing controls without hover requirement`);
     try { 
       this.forceShowControlsAlways(); 
+      
+      // Add a delayed safety check to ensure controls are still visible
+      setTimeout(() => {
+        this.ensureControlsVisible();
+      }, 2000);
+      
+      // Set up periodic check to ensure controls stay visible
+      this.startPeriodicControlsCheck();
+      
     } catch (e) {
-      console.error('Error forcing controls to always show:', e);
+      console.error('❌ Error forcing controls to always show:', e);
     }
+  } else {
+    console.log(`🎯 Activation #${this.activationCount} (<3): Using normal hover behavior`);
   }
 
   }
 
   deactivateSplitScreen() {
+    console.log(`🔄 Deactivating split screen (activation count: ${this.activationCount})`);
     
     if (!this.isActive) {
+      console.log('⚠️ Already inactive, skipping deactivation');
       return;
     }
 
     this.isActive = false;
     this.preventAutoDeactivate = false; // Reset flag
     this._controlsAlwaysVisible = false; // Reset always visible flag
+    console.log('🔄 Reset _controlsAlwaysVisible = false');
     
     // Stop overlay monitoring
     this.stopOverlayMonitoring();
+    
+    // Stop periodic controls check
+    this.stopPeriodicControlsCheck();
     
     // Do targeted cleanup for stuck overlays only, avoiding aggressive cleanup that causes black screen
     this.cleanupStuckOverlays();
@@ -992,10 +1010,12 @@ class YouTubeBrainrotSplitter {
         this.movedOriginalVideoElement = null;
         
         // Reset all container references for complete cleanup
+        console.log('🧹 Resetting all container references...');
         this.originalVideoContainer = null;
         this.brainrotContainer = null;
         this.brainrotVideo = null;
         this.videoPlaceholder = null;
+        console.log('✅ Container references reset');
       } catch (err) {
         console.error('Error restoring video position:', err);
       }
@@ -1454,34 +1474,130 @@ class YouTubeBrainrotSplitter {
     }
   }
 
+  // Start periodic check to ensure controls stay visible (for activation #3+)
+  startPeriodicControlsCheck() {
+    try {
+      // Clear any existing interval
+      this.stopPeriodicControlsCheck();
+      
+      if (this.activationCount >= 3 && this.isActive) {
+        console.log('🕐 Starting periodic controls visibility check...');
+        this._controlsCheckInterval = setInterval(() => {
+          this.ensureControlsVisible();
+        }, 5000); // Check every 5 seconds
+      }
+    } catch (error) {
+      console.error('❌ Error starting periodic controls check:', error);
+    }
+  }
+  
+  // Stop periodic controls check
+  stopPeriodicControlsCheck() {
+    try {
+      if (this._controlsCheckInterval) {
+        console.log('🛑 Stopping periodic controls check');
+        clearInterval(this._controlsCheckInterval);
+        this._controlsCheckInterval = null;
+      }
+    } catch (error) {
+      console.error('❌ Error stopping periodic controls check:', error);
+    }
+  }
+
+  // Safety check to ensure controls are visible (for activation #3+)
+  ensureControlsVisible() {
+    try {
+      console.log(`🔍 Safety check: Ensuring controls are visible for activation #${this.activationCount}...`);
+      
+      if (!this.isActive) {
+        console.log('⚠️ Split mode not active, skipping controls check');
+        return;
+      }
+      
+      if (this.activationCount < 3) {
+        console.log('ℹ️ Activation < 3, no need for always-visible controls');
+        return;
+      }
+      
+      // Check if controls overlay exists and is visible
+      if (!this.controlsOverlay) {
+        console.log('❌ Controls overlay missing, attempting to recreate...');
+        this.forceShowControlsAlways();
+        return;
+      }
+      
+      const computedStyle = getComputedStyle(this.controlsOverlay);
+      const isVisible = computedStyle.display !== 'none' && 
+                       computedStyle.visibility !== 'hidden' && 
+                       computedStyle.opacity !== '0';
+      
+      if (!isVisible) {
+        console.log('❌ Controls overlay not visible, forcing visibility...');
+        this.controlsOverlay.style.display = 'flex !important';
+        this.controlsOverlay.style.visibility = 'visible !important';
+        this.controlsOverlay.style.opacity = '1 !important';
+        console.log('✅ Controls overlay forced visible');
+      } else {
+        console.log('✅ Controls overlay is properly visible');
+      }
+      
+      // Ensure flag is still set
+      if (!this._controlsAlwaysVisible) {
+        console.log('⚠️ _controlsAlwaysVisible flag was reset, restoring...');
+        this._controlsAlwaysVisible = true;
+      }
+      
+    } catch (error) {
+      console.error('❌ Error in ensureControlsVisible:', error);
+    }
+  }
+
   // Force controls to always show (for activation #3+)
   forceShowControlsAlways() {
     try {
-      console.log('🔧 Forcing controls to always show...');
+      console.log(`🔧 Forcing controls to always show for activation #${this.activationCount}...`);
       
       // Try to find moved container if reference is lost
       if (!this.youtubeMovedContainer) {
+        console.log('🔍 youtubeMovedContainer is null, searching for it...');
         this.youtubeMovedContainer = document.querySelector('.youtube-moved-container');
+        if (this.youtubeMovedContainer) {
+          console.log('✅ Found youtubeMovedContainer via querySelector');
+        } else {
+          console.log('❌ Could not find youtubeMovedContainer');
+        }
+      } else {
+        console.log('✅ youtubeMovedContainer reference exists');
       }
       
       // Create controls overlay if we have moved container
       if (this.youtubeMovedContainer && !this.controlsOverlay) {
+        console.log('🔨 Creating controls overlay...');
         this.createControlsOverlay();
+      } else if (!this.youtubeMovedContainer) {
+        console.log('❌ Cannot create controls overlay - no youtubeMovedContainer');
+      } else {
+        console.log('ℹ️ Controls overlay already exists');
       }
       
       // Force show controls overlay permanently
       if (this.controlsOverlay) {
+        console.log('🎯 Forcing controls overlay to always show...');
         this.controlsOverlay.style.display = 'flex !important';
         this.controlsOverlay.style.visibility = 'visible !important';
         this.controlsOverlay.style.opacity = '1 !important';
         console.log('✅ Controls overlay forced to always show');
+      } else {
+        console.log('❌ No controls overlay to force show');
       }
 
       // Also force show YouTube's native controls
+      console.log('🎬 Forcing YouTube native controls...');
       this._forceShowYTControls();
       
       // Set flag to prevent hover handlers from hiding controls
       this._controlsAlwaysVisible = true;
+      console.log(`🏁 Set _controlsAlwaysVisible = ${this._controlsAlwaysVisible}`);
       
     } catch (error) {
       console.error('❌ Error forcing controls to always show:', error);
