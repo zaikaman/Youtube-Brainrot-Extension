@@ -2137,16 +2137,134 @@ class YouTubeBrainrotSplitter {
   }
 
   cleanupStuckOverlays() {
-    console.log('🔄 Forcing layout recalculation (like F12/fullscreen)...');
+    console.log('🎭 Trying multiple refresh approaches...');
     
-    // Since F12 and fullscreen fix it, try to trigger similar layout recalc
-    this.forceLayoutRecalculation();
+    // Try different approaches in sequence
+    this.forceStyleRefresh();
     
-    // Skip DOM manipulation - it's not a DOM issue
-    // this.findAndRemoveBlackOverlays();
+    setTimeout(() => {
+      this.toggleIsolation();
+      
+      setTimeout(() => {
+        this.forceVideoRestack();
+        
+        setTimeout(() => {
+          // Last resort: simulate what F12 does
+          this.simulateDevToolsToggle();
+        }, 150);
+      }, 100);
+    }, 50);
     
     // Debug scan when cleanup is called
     this.debugScanAllOverlays();
+  }
+
+  simulateDevToolsToggle() {
+    try {
+      console.log('🛠️ Simulating dev tools toggle...');
+      
+      // Method 1: Dispatch F12 keydown event
+      const f12Event = new KeyboardEvent('keydown', {
+        key: 'F12',
+        code: 'F12',
+        keyCode: 123,
+        which: 123,
+        bubbles: true
+      });
+      document.dispatchEvent(f12Event);
+      
+      // Method 2: Try to trigger what dev tools opening does
+      setTimeout(() => {
+        // Force viewport meta refresh
+        const viewport = document.querySelector('meta[name="viewport"]');
+        if (viewport) {
+          const content = viewport.getAttribute('content');
+          viewport.setAttribute('content', content + ', user-scalable=yes');
+          setTimeout(() => {
+            viewport.setAttribute('content', content);
+          }, 10);
+        }
+        
+        // Method 3: Trigger window focus/blur (like dev tools does)
+        window.dispatchEvent(new Event('blur'));
+        setTimeout(() => {
+          window.dispatchEvent(new Event('focus'));
+          console.log('✅ Dev tools simulation completed');
+        }, 10);
+      }, 10);
+      
+    } catch (error) {
+      console.error('❌ Dev tools simulation failed:', error);
+    }
+  }
+
+  forceStyleRefresh() {
+    try {
+      console.log('🎨 Force CSS refresh...');
+      const player = document.querySelector('#movie_player');
+      const video = document.querySelector('.video-stream.html5-main-video');
+      
+      if (player && video) {
+        // Method 1: Toggle contain property (forces new stacking context)
+        player.style.contain = 'layout style paint';
+        setTimeout(() => {
+          player.style.contain = '';
+          
+          // Method 2: Force video to recreate its rendering context  
+          video.style.display = 'none';
+          video.offsetHeight; // Force reflow
+          video.style.display = 'block';
+          
+          console.log('✅ CSS refresh completed');
+        }, 10);
+      }
+    } catch (error) {
+      console.error('❌ CSS refresh failed:', error);
+    }
+  }
+
+  toggleIsolation() {
+    try {
+      console.log('🔒 Toggling CSS isolation...');
+      const player = document.querySelector('#movie_player');
+      
+      if (player) {
+        // Force new stacking context
+        player.style.isolation = 'isolate';
+        player.style.willChange = 'transform';
+        
+        setTimeout(() => {
+          player.style.isolation = '';
+          player.style.willChange = '';
+          console.log('✅ Isolation toggle completed');
+        }, 50);
+      }
+    } catch (error) {
+      console.error('❌ Isolation toggle failed:', error);
+    }
+  }
+
+  forceVideoRestack() {
+    try {
+      console.log('📚 Force video restack...');
+      const video = document.querySelector('.video-stream.html5-main-video');
+      
+      if (video) {
+        // Force video to top of stack
+        video.style.position = 'relative';
+        video.style.zIndex = '999999';
+        video.style.isolation = 'isolate';
+        
+        setTimeout(() => {
+          video.style.position = '';
+          video.style.zIndex = '';
+          video.style.isolation = '';
+          console.log('✅ Video restack completed');
+        }, 100);
+      }
+    } catch (error) {
+      console.error('❌ Video restack failed:', error);
+    }
   }
 
   forceLayoutRecalculation() {
