@@ -873,6 +873,12 @@ class YouTubeBrainrotSplitter {
       this.overlayObserver.disconnect();
       this.overlayObserver = null;
     }
+    
+    // Clear overlay check interval if exists
+    if (this.overlayCheckInterval) {
+      clearInterval(this.overlayCheckInterval);
+      this.overlayCheckInterval = null;
+    }
 
     // Remove brainrot container
     if (this.brainrotContainer) {
@@ -1925,59 +1931,120 @@ class YouTubeBrainrotSplitter {
   }
 
   startOverlayMonitoring() {
-    // Monitor for overlay creation and prevent them
+    console.log('Starting overlay monitoring...');
+    
+    // First, find and hide any existing overlays
+    const existingOverlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top, [class*="overlay"], [class*="spinner"]');
+    console.log('Found existing overlays:', existingOverlays.length, existingOverlays);
+    existingOverlays.forEach(overlay => {
+      console.log('Hiding existing overlay:', overlay.className, overlay);
+      overlay.style.display = 'none !important';
+      overlay.style.visibility = 'hidden !important';
+      overlay.style.pointerEvents = 'none !important';
+      overlay.style.opacity = '0 !important';
+    });
+    
+    // Monitor for both DOM changes AND attribute changes (style changes)
     this.overlayObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
-        if (mutation.type === 'childList' && this.isActive) {
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              // Check if this is a YouTube overlay
-              if (node.classList && (
-                node.classList.contains('ytp-pause-overlay') ||
-                node.classList.contains('ytp-spinner') ||
-                node.classList.contains('ytp-gradient-bottom') ||
-                node.classList.contains('ytp-gradient-top') ||
-                node.matches('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top')
-              )) {
-                console.log('Detected overlay creation:', node.className, node);
-                // Immediately hide it
-                node.style.display = 'none !important';
-                node.style.visibility = 'hidden !important';
-                node.style.pointerEvents = 'none !important';
-                node.style.opacity = '0 !important';
+        if (this.isActive) {
+          // Monitor new elements being added
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach((node) => {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                // Check if this is a YouTube overlay
+                if (node.classList && (
+                  node.classList.contains('ytp-pause-overlay') ||
+                  node.classList.contains('ytp-spinner') ||
+                  node.classList.contains('ytp-gradient-bottom') ||
+                  node.classList.contains('ytp-gradient-top') ||
+                  node.className.includes('overlay') ||
+                  node.className.includes('spinner')
+                )) {
+                  console.log('Detected new overlay element:', node.className, node);
+                  // Immediately hide it
+                  node.style.display = 'none !important';
+                  node.style.visibility = 'hidden !important';
+                  node.style.pointerEvents = 'none !important';
+                  node.style.opacity = '0 !important';
+                }
+                
+                // Also check child elements
+                const overlayChildren = node.querySelectorAll && node.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top, [class*="overlay"], [class*="spinner"]');
+                if (overlayChildren && overlayChildren.length > 0) {
+                  overlayChildren.forEach(overlay => {
+                    console.log('Detected new child overlay:', overlay.className, overlay);
+                    overlay.style.display = 'none !important';
+                    overlay.style.visibility = 'hidden !important';
+                    overlay.style.pointerEvents = 'none !important';
+                    overlay.style.opacity = '0 !important';
+                  });
+                }
               }
-              
-              // Also check child elements
-              const overlayChildren = node.querySelectorAll && node.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top');
-              if (overlayChildren) {
-                overlayChildren.forEach(overlay => {
-                  console.log('Detected child overlay creation:', overlay.className, overlay);
-                  overlay.style.display = 'none !important';
-                  overlay.style.visibility = 'hidden !important';
-                  overlay.style.pointerEvents = 'none !important';
-                  overlay.style.opacity = '0 !important';
-                });
-              }
+            });
+          }
+          
+          // Monitor attribute changes (like style changes that make overlays visible)
+          if (mutation.type === 'attributes' && (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+            const target = mutation.target;
+            if (target.classList && (
+              target.classList.contains('ytp-pause-overlay') ||
+              target.classList.contains('ytp-spinner') ||
+              target.classList.contains('ytp-gradient-bottom') ||
+              target.classList.contains('ytp-gradient-top') ||
+              target.className.includes('overlay') ||
+              target.className.includes('spinner')
+            )) {
+              console.log('Detected overlay style/class change:', target.className, target, 'style:', target.style.cssText);
+              // Force hide it again
+              target.style.display = 'none !important';
+              target.style.visibility = 'hidden !important';
+              target.style.pointerEvents = 'none !important';
+              target.style.opacity = '0 !important';
             }
-          });
+          }
         }
       });
     });
     
-    // Observe the entire movie player for overlay creation
+    // Observe the entire movie player for overlay changes
     const moviePlayer = document.querySelector('#movie_player');
     if (moviePlayer) {
       this.overlayObserver.observe(moviePlayer, {
         childList: true,
-        subtree: true
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
       });
+      console.log('Started observing movie player for overlay changes');
     }
+    
+    // Also periodically check for overlays as backup
+    this.overlayCheckInterval = setInterval(() => {
+      if (this.isActive) {
+        const overlays = document.querySelectorAll('.ytp-pause-overlay, .ytp-spinner, .ytp-gradient-bottom, .ytp-gradient-top, [class*="overlay"], [class*="spinner"]');
+        overlays.forEach(overlay => {
+          if (overlay.style.display !== 'none' || overlay.style.visibility !== 'hidden') {
+            console.log('Periodic check found visible overlay:', overlay.className, overlay);
+            overlay.style.display = 'none !important';
+            overlay.style.visibility = 'hidden !important';
+            overlay.style.pointerEvents = 'none !important';
+            overlay.style.opacity = '0 !important';
+          }
+        });
+      }
+    }, 500); // Check every 500ms
   }
 
   stopOverlayMonitoring() {
+    console.log('Stopping overlay monitoring...');
     if (this.overlayObserver) {
       this.overlayObserver.disconnect();
       this.overlayObserver = null;
+    }
+    if (this.overlayCheckInterval) {
+      clearInterval(this.overlayCheckInterval);
+      this.overlayCheckInterval = null;
     }
   }
 
