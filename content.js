@@ -22,7 +22,7 @@ class YouTubeBrainrotSplitter {
     // Detect current domain
     this.currentDomain = window.location.hostname;
     this.isYouTube = this.currentDomain.includes('youtube.com');
-    this.isFullstack = this.currentDomain.includes('fullstack.edu.vn');
+    this.isFullstack = this.currentDomain.includes('f8.edu.vn');
     
     
     this.init();
@@ -333,11 +333,10 @@ class YouTubeBrainrotSplitter {
         const fullscreenBtn = rightControls.querySelector('.ytp-fullscreen-button');
         const settingsBtn = rightControls.querySelector('.ytp-settings-button');
         
-        // Try to insert before fullscreen button, fallback to before settings, then append
-        if (fullscreenBtn) {
-          rightControls.insertBefore(splitBtn, fullscreenBtn);
-        } else if (settingsBtn) {
-          rightControls.insertBefore(splitBtn, settingsBtn);
+        // Insert next to the current control button using its actual parent node.
+        const insertionTarget = fullscreenBtn || settingsBtn;
+        if (insertionTarget && insertionTarget.parentNode) {
+          insertionTarget.parentNode.insertBefore(splitBtn, insertionTarget);
         } else {
           rightControls.appendChild(splitBtn);
         }
